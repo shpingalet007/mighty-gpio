@@ -7,7 +7,10 @@
   "scripts": {
     "build:dev": "ncc build src/main.ts -o dist --source-map",
     "build:prod": "ncc build src/main.ts -m -o dist",
+    "start:socket": "ts-node tests/socket.ts",
+    "start:socket:debug": "node --inspect-brk --enable-source-maps -r ts-node/register tests/socket.ts",
     "start": "ts-node src/main.ts",
+    "start:debug": "node --inspect-brk --enable-source-maps -r ts-node/register src/main.ts",
     "lint": "prettier --write {src,types}/**/*.ts"
   },
   "dependencies": {
@@ -15,7 +18,10 @@
     "ts-node": "^10.9.2"
   },
   "devDependencies": {
+    "@types/express": "^5.0.1",
+    "express": "^5.1.0",
     "prettier": "^3.5.3",
+    "socket.io": "^4.8.1",
     "typescript": "^5.5.3"
   },
   "optionalDependencies": {

@@ -1,0 +1,106 @@
+#machine {
+    display: inline-flex;
+    flex-direction: row;
+    padding: 100px;
+    background: linear-gradient(0deg, #000000 0%, #1c1c1c 100%);
+    border-radius: 50px;
+    border: 6px solid #0f9cb9;
+}
+
+.joint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    margin: 10px;
+    box-sizing: border-box;
+    border-radius: 10000%;
+    background: conic-gradient(from 48deg, #c1c1c1, #373737, #874e2d, #e3e3e3, #373737, #8d7e76, #c1c1c1);
+    box-shadow: 0 0 0 5px #101010, 0 0 0 7px #00000045;
+    cursor: pointer;
+}
+
+.joint .button::before {
+    content: "";
+    width: 40px;
+    height: 40px;
+    border-radius: 10000%;
+    box-sizing: border-box;
+    border: 5px solid #4f704f;
+    background: transparent;
+}
+
+.joint .button::after {
+    position: absolute;
+    content: '';
+    width: 40px;
+    height: 40px;
+    border-radius: 10000%;
+    box-shadow: inset 0 0 3px 1px #00000060;
+}
+
+.joint .button.in-on::after,
+.joint .button:active::after {
+    background-color: #00000050;
+    box-shadow: inset 0 0 3px 1px #00000060, inset 0 0 3px 2px #00000060;
+}
+
+.joint .button.in-on::before,
+.joint .button:active::before {
+    transform: scale(94%);
+}
+
+.baseled.blink .button::before,
+.button.blink::before {
+    animation: pulse 1s infinite;
+}
+
+.baseled.out-on .button::before,
+.button.out-on::before {
+    border-color: #56cb56;
+}
+
+@keyframes pulse {
+    0%,
+    49.999999% {
+        border-color: #4f704f;
+    }
+    50%,
+    100% {
+        border-color: #56cb56;
+    }
+}
+
+.dispenser {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+    border-radius: 10000%;
+    background-color: lightgray;
+    border: 2px solid #000;
+    box-shadow: 0 0 0 1px #ffffff30;
+}
+
+.dispenser::before {
+    content: '';
+    width: 2px;
+    height: 2px;
+    border-radius: 10000%;
+    background-color: #000;
+}
+
+.dispenser.out-on {
+    box-shadow: 0 0 10px 10px #ffffff66;
+}

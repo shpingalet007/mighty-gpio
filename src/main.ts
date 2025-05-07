@@ -1,44 +1,26 @@
 import type ArrayGpio from "array-gpio";
 import { AckEventEmitter } from "./helpers/ackevents";
+import { BroadcomScheme } from "./helpers/gpio-scheme";
+import { Edge, Resistor } from "./types/enums";
+import {
+  Callback,
+  ObserverHandler,
+  RemoteObserverHandler,
+  ResistorType,
+  StateCallback,
+  StateEdgeCallback,
+} from "./types/types";
 
-type StateCallback = (state: boolean) => void;
-type StateEdgeCallback = (edge: Edge, state: boolean) => void;
-export type HandlerCallback = (pin: number, state: boolean) => Promise<boolean>;
-type Callback = () => void;
-
-type ObserverHandler = (pin: number, state: boolean) => Promise<boolean>;
-type RemoteObserverHandler = (handler: HandlerCallback) => void;
+export { Edge, Resistor } from "./types/enums";
 
 interface ObserversPack {
   send?: ObserverHandler;
   receive?: RemoteObserverHandler;
 }
 
-enum Resistor {
-  PullDown,
-  PullUp,
-}
-
-export enum Edge {
-  Low = 0,
-  High = 1,
-  Both = "both",
-  Unknown = "unknown",
-}
-
-type ResistorType = Resistor | "pu" | "pd";
-
-enum InformDirection {
-  Both = "Both",
-  Local = "Local",
-  Remote = "Remote",
-}
-
-export enum Mode {
-  Auto = "auto",
+enum Mode {
   Real = "real",
   Emulated = "emulated",
-  // Experimental = 'experimental',
 }
 
 type BitState = 1 | true | 0 | false;
@@ -48,19 +30,36 @@ enum PinMode {
   In = "in",
 }
 
-export class MightyGpio {
-  static StaleTime = 10 * 1000;
+enum GpioScheme {
+  Physical = "physical",
+  Broadcom = "broadcom",
+}
 
-  public static mode = Mode.Auto;
-  public static inverted = false;
+export class MightyGpio {
+  static mode = Mode.Real;
+  static inverted = false;
+  static gpioScheme = GpioScheme.Physical;
+
   public static events = new AckEventEmitter();
 
   public static arrayGpio: Promise<typeof ArrayGpio | null>;
 
   private static _observers: ObserversPack = {};
 
-  public static setMode = (mode: Mode) => (MightyGpio.mode = mode);
-  public static setInverted = () => (MightyGpio.inverted = true);
+  public static forceEmulation = () => (this.mode = Mode.Emulated);
+
+  public static setInverted = () => {
+    if (this.mode === Mode.Real) {
+      MightyGpio.inverted = true;
+    }
+  };
+
+  public static useBroadcomScheme = () => {
+    this.gpioScheme = GpioScheme.Broadcom;
+  };
+
+  public static isBroadcomScheme = () =>
+    this.gpioScheme === GpioScheme.Broadcom;
 
   public static setObservers(observers: ObserversPack) {
     MightyGpio._observers = observers;
@@ -164,6 +163,7 @@ class Pin {
   protected resistor?: Resistor = Resistor.PullDown;
 
   protected state: boolean = false;
+  protected isHardware: boolean = false;
 
   get isOff(): boolean {
     return !this.state;
@@ -234,7 +234,7 @@ export class InputPin extends Pin {
 
   constructor(pin: number) {
     super(pin);
-    this.gpio = this.initGpio(pin);
+    this.gpio = this.initGpio(this.pin);
 
     this.handleStateReceived((state) => {
       const prevState = this.state;
@@ -273,7 +273,8 @@ export class InputPin extends Pin {
     this.handleStateConfirmed((edge, state) => {
       const dateNow = Date.now();
       const isRateReached = lastReported + scanRate <= dateNow;
-      const isTargetEdge = requestedEdge === edge;
+      const isTargetEdge =
+        requestedEdge === edge || requestedEdge === Edge.Both;
 
       if (!isRateReached || !isTargetEdge) return false;
 
@@ -335,16 +336,20 @@ export class InputPin extends Pin {
   }
 
   protected async initGpio(pin: number) {
+    if (MightyGpio.mode === Mode.Emulated) return;
+
+    if (MightyGpio.gpioScheme === GpioScheme.Broadcom) {
+      pin = BroadcomScheme[pin as keyof typeof BroadcomScheme];
+    }
+
     const hwPin = <ArrayGpio.InputPin>await Pin.getGpioPin(pin, PinMode.In);
 
     // Reading current hardware state as default
     const currentState = !!hwPin?.state;
 
-    const isRealAndInverted =
-      MightyGpio.inverted && MightyGpio.mode === Mode.Real;
-
-    if (isRealAndInverted) {
+    if (hwPin) {
       this.state = !currentState;
+      this.isHardware = true;
     } else {
       this.state = currentState;
     }
@@ -370,6 +375,8 @@ export class InputPin extends Pin {
         } else if (isHighToLow) {
           this.invokeStateConfirmed(Edge.Low, state);
         }
+
+        prevState = state;
       },
       MinScanRate,
     );
@@ -383,7 +390,7 @@ export class OutputPin extends Pin {
 
   constructor(pin: number) {
     super(pin);
-    this.gpio = this.initGpio(pin);
+    this.gpio = this.initGpio(this.pin);
 
     this.handleStateReceived(async (state) => {
       const prevState = this.state;
@@ -488,6 +495,12 @@ export class OutputPin extends Pin {
   }
 
   protected async initGpio(pin: number) {
+    if (MightyGpio.mode === Mode.Emulated) return;
+
+    if (MightyGpio.gpioScheme === GpioScheme.Broadcom) {
+      pin = BroadcomScheme[pin as keyof typeof BroadcomScheme];
+    }
+
     const hwPin = <ArrayGpio.OutputPin>await Pin.getGpioPin(pin, PinMode.Out);
 
     // Reading current hardware state as default
@@ -499,3 +512,5 @@ export class OutputPin extends Pin {
 
 export const setInput = MightyGpio.setInput;
 export const setOutput = MightyGpio.setOutput;
+
+export { ObserverHandler } from "./types/types";

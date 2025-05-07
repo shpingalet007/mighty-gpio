@@ -1,7 +1,38 @@
-import { EventEmitter } from "events";
 import type ArrayGpio from "array-gpio";
+import { AckEventEmitter } from "./helpers/ackevents";
 
-// TODO: Move types
+type StateCallback = (state: boolean) => void;
+type StateEdgeCallback = (edge: Edge, state: boolean) => void;
+export type HandlerCallback = (pin: number, state: boolean) => Promise<boolean>;
+type Callback = () => void;
+
+type ObserverHandler = (pin: number, state: boolean) => Promise<boolean>;
+type RemoteObserverHandler = (handler: HandlerCallback) => void;
+
+interface ObserversPack {
+  send?: ObserverHandler;
+  receive?: RemoteObserverHandler;
+}
+
+enum Resistor {
+  PullDown,
+  PullUp,
+}
+
+export enum Edge {
+  Low = 0,
+  High = 1,
+  Both = "both",
+  Unknown = "unknown",
+}
+
+type ResistorType = Resistor | "pu" | "pd";
+
+enum InformDirection {
+  Both = "Both",
+  Local = "Local",
+  Remote = "Remote",
+}
 
 export enum Mode {
   Auto = "auto",
@@ -10,35 +41,11 @@ export enum Mode {
   // Experimental = 'experimental',
 }
 
-enum Resistor {
-  PullDown,
-  PullUp,
-}
-
-enum PinType {
-  Input = "input",
-  Output = "output",
-}
-
-export enum Edge {
-  Low = 0,
-  High = 1,
-  Both = "both",
-}
-
-type ResistorType = Resistor | "pu" | "pd";
-
-type StateCallback = (state: boolean) => void;
-export type HandlerCallback = (pin: number, state: boolean) => Promise<boolean>;
-type Callback = () => void;
-
-type ObserverHandler = (pin: number, state: boolean) => Promise<boolean>;
-type RemoteObserverHandler = (handler: HandlerCallback) => void;
 type BitState = 1 | true | 0 | false;
 
-interface ObserversPack {
-  send?: ObserverHandler;
-  receive?: RemoteObserverHandler;
+enum PinMode {
+  Out = "out",
+  In = "in",
 }
 
 export class MightyGpio {
@@ -46,53 +53,34 @@ export class MightyGpio {
 
   public static mode = Mode.Auto;
   public static inverted = false;
-  public static events = new EventEmitter();
+  public static events = new AckEventEmitter();
 
-  static arrayGpio: Promise<typeof ArrayGpio | null>;
+  public static arrayGpio: Promise<typeof ArrayGpio | null>;
 
   private static _observers: ObserversPack = {};
 
-  public static setMode(mode: Mode) {
-    MightyGpio.mode = mode;
-  }
-
-  public static setInverted() {
-    MightyGpio.inverted = true;
-  }
+  public static setMode = (mode: Mode) => (MightyGpio.mode = mode);
+  public static setInverted = () => (MightyGpio.inverted = true);
 
   public static setObservers(observers: ObserversPack) {
     MightyGpio._observers = observers;
 
-    MightyGpio._observers.receive?.((pinNumber, state) => {
-      if (MightyGpio.inverted) {
-        state = !state;
-      }
+    MightyGpio._observers.receive?.(async (pin, state) => {
+      /**
+       * Input and Output classes replicate this functionality differently.
+       * For this reason here we would only send event that there is a pin
+       * state change registered.
+       */
 
-      return new Promise((resolve: (state: boolean) => void, reject) => {
-        this.events.once(
-          `pin[${pinNumber}]:observer:receive:confirm`,
-          (state: boolean) => resolve(state),
-        );
-
-        //console.log('[DBG] Receive', pinNumber, state);
-        this.events.emit(`pin[${pinNumber}]:observer:receive`, state);
-      });
+      return await this.events.invoke(`state-received[${pin}]`, state);
     });
 
-    this.events.removeAllListeners("pin:observer:send");
-
-    this.events.on(
-      "pin:observer:send",
-      async (pinNumber: number, state: boolean) => {
-        if (MightyGpio.inverted) {
-          state = !state;
-        }
-
-        await MightyGpio._observers.send?.(pinNumber, state);
-        this.events.emit(`pin[${pinNumber}]:observer:send:confirm`, state);
-      },
-    );
+    MightyGpio.events.on("state-assigned", (pin: number, state: boolean) => {
+      MightyGpio._observers.send?.(pin, state);
+    });
   }
+
+  // Public methods
 
   public static setInput = (pin: number) => new InputPin(pin);
   public static in = this.setInput;
@@ -109,25 +97,28 @@ export class MightyGpio {
       s: scanRate,
     } = this.parseWatchInputArgs(...args);
 
-    MightyGpio.unwatchInput();
-
     let lastReported = Date.now();
 
-    MightyGpio.events.on("pin:watch", (edge: Edge) => {
-      const dateNow = Date.now();
-      const isRateReached = lastReported + scanRate > dateNow;
-      const isTargetEdge = requestedEdge === edge;
+    MightyGpio.events.on(
+      "state-watch",
+      (pin: number, edge: Edge, state: boolean) => {
+        const dateNow = Date.now();
+        const isRateReached = lastReported + scanRate > dateNow;
+        const isTargetEdge = requestedEdge === edge;
 
-      if (isRateReached || isTargetEdge) return;
+        if (!isRateReached || !isTargetEdge) return;
 
-      lastReported = dateNow;
-      callback();
-    });
+        lastReported = dateNow;
+        callback();
+      },
+    );
   }
 
   public static unwatchInput() {
-    MightyGpio.events.removeAllListeners("pin:watch");
+    // TODO: Refactor
   }
+
+  // Service methods
 
   private static parseWatchInputArgs(
     ...args: [Callback | Edge, (number | Callback)?, number?]
@@ -172,15 +163,7 @@ class Pin {
 
   protected resistor?: Resistor = Resistor.PullDown;
 
-  protected _state: boolean = false;
-
-  protected get state(): boolean {
-    return this._state;
-  }
-
-  protected set state(value: boolean) {
-    this.setState(value);
-  }
+  protected state: boolean = false;
 
   get isOff(): boolean {
     return !this.state;
@@ -198,120 +181,82 @@ class Pin {
 
     this.pin = pin;
     this.state = false;
-
-    MightyGpio.events.on(
-      `pin[${this.pin}]:observer:receive`,
-      (state: boolean) => {
-        console.log('[DBG] Pin Watcher');
-
-        this.setStateSilent(state);
-
-        MightyGpio.events.emit(
-          `pin[${this.pin}]:observer:receive:confirm`,
-          state,
-        );
-      },
-    );
   }
 
   public close() {
-    this.gpio?.then((gpio) => {
-      gpio?.close();
-    });
+    // TODO: Refactor
   }
 
   public read(callback?: StateCallback): void {
     callback?.(this.state);
   }
 
-  protected sendEvent(state: boolean, edge?: Edge) {
-    MightyGpio.events.emit("pin:observer:send", this.pin, state, edge);
+  protected handleStateReceived(handler: StateCallback): void {
+    MightyGpio.events.handle(`state-received[${this.pin}]`, handler);
   }
 
-  private async receiveEvent(): Promise<void> {
-    return new Promise((resolve: () => void, reject) => {
-      if (MightyGpio.mode === Mode.Emulated) {
-        setTimeout(() => {
-          // TODO: Enable stale again after debug 01 may 2025
-          // reject(Error("Event Receive is stale"));
-        }, MightyGpio.StaleTime);
-
-        return;
-      }
-
-      resolve();
-    });
+  protected invokeStateReceived(state: boolean) {
+    return MightyGpio.events.invoke(`state-received[${this.pin}]`, state);
   }
 
-  private setRemoteState(state: boolean) {
-    this.sendEvent(state);
+  protected handleStateConfirmed(handler: StateEdgeCallback): void {
+    MightyGpio.events.handle(`state-confirmed[${this.pin}]`, handler);
+  }
 
-    const responsePromise = this.receiveEvent();
+  protected invokeStateConfirmed(edge: Edge, state: boolean) {
+    return MightyGpio.events.invoke(
+      `state-confirmed[${this.pin}]`,
+      edge,
+      state,
+    );
+  }
 
-    if (MightyGpio.mode === Mode.Emulated) {
-      return responsePromise;
+  protected static async getGpioPin(
+    pin: number,
+    mode: PinMode,
+  ): Promise<ArrayGpio.OutputPin | ArrayGpio.InputPin | undefined> {
+    const arrayGpio = await MightyGpio.arrayGpio;
+
+    let gpioPin;
+
+    if (mode === PinMode.In) {
+      gpioPin = arrayGpio?.setInput(pin);
+    } else {
+      gpioPin = arrayGpio?.setOutput(pin);
     }
 
-    return Promise.resolve();
-  }
-
-  /*private async sendStateToObserver(state: boolean) {
-    if (MightyGpio.mode === Mode.Emulated) {
-      const result = await MightyGpio._observers.send?.(this.pin, state);
-
-      if (result === undefined) throw Error("STATE_ERROR");
-
-      this.setStateSilent(result);
-
-      return result;
-    }
-
-    // TODO: This must be removed
-    return this.state;
-  }*/
-
-  protected setStateSilent(state: boolean) {
-    this._state = state;
-  }
-
-  protected async setState(value: boolean) {
-    this.setStateSilent(value);
-    await this.setRemoteState(value);
-    return this.state;
+    return gpioPin;
   }
 }
 
 export class InputPin extends Pin {
-  protected watcher?: NodeJS.Timeout;
   protected gpio: Promise<ArrayGpio.InputPin | undefined>;
 
   constructor(pin: number) {
     super(pin);
     this.gpio = this.initGpio(pin);
 
-    this.gpio.then((gpio) => {
-      console.log('GPIO INPUT WATCH HACK');
+    this.handleStateReceived((state) => {
+      const prevState = this.state;
+      this.state = state;
 
-      gpio?.watch((state) => {
-        this.setState(state);
-        MightyGpio.events.emit(`pin[${this.pin}]:dispatch:watch`, state);
-      }, 1);
+      if (prevState === this.state) return;
+
+      const isLowToHigh = this.state === true && prevState === false;
+      const isHighToLow = this.state === false && prevState === true;
+
+      if (isLowToHigh) {
+        this.invokeStateConfirmed(Edge.High, state);
+      } else if (isHighToLow) {
+        this.invokeStateConfirmed(Edge.Low, state);
+      }
+
+      /**
+       * We can't assign InputPin real state so just setting
+       * this.state as new state and acting like it is really
+       * set on hardware level.
+       */
     });
-
-    // @ts-ignore
-    /*const getState = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this.gpio), 'state').bind(this.gpio);
-
-    Object.defineProperty(this.gpio, 'state', {
-      set(newVal) {
-        this._value = newVal;
-      },
-      get() {
-        getState();
-        return this._value;
-      },
-      configurable: true,
-      enumerable: true,
-    });*/
   }
 
   public watch(
@@ -323,95 +268,41 @@ export class InputPin extends Pin {
       s: scanRate,
     } = this.parseWatchArgs(...args);
 
-    this.unwatch();
-
     let lastReported = Date.now();
-    let prevState = this.state;
 
-    const dispatchEvent = (state: boolean) => {
-      console.log('[DBG] InputPin Watcher');
-
+    this.handleStateConfirmed((edge, state) => {
       const dateNow = Date.now();
       const isRateReached = lastReported + scanRate <= dateNow;
+      const isTargetEdge = requestedEdge === edge;
 
-      if (!isRateReached) return;
+      if (!isRateReached || !isTargetEdge) return false;
 
-      const isLowToHigh = this.state === true && prevState === false;
-      const isHighToLow = this.state === false && prevState === true;
-      const isStateNotSame = isLowToHigh || isHighToLow;
+      lastReported = dateNow;
+      callback(state);
 
-      console.log(`[DBG] CURR= ${this.state} PREV=${prevState}`);
+      MightyGpio.events.emit("state-watch", this.pin, edge, state);
 
-      prevState = this.state;
-
-      console.log(`[DBG] LH? ${isLowToHigh} HL? ${isHighToLow}`);
-      if (!isLowToHigh && !isHighToLow) return;
-
-      const forHigh = requestedEdge === Edge.High && isLowToHigh;
-      const forLow = requestedEdge === Edge.Low && isHighToLow;
-      const forAny = requestedEdge === "both" && isStateNotSame;
-
-      console.log('[DBG] Callback?', forAny || forHigh || forLow);
-      console.log('[DBG] Checks', forAny, forHigh, forLow);
-      console.log('[DBG] State is now', this.state);
-      if (forAny || forHigh || forLow) {
-        callback(this.state);
-        lastReported = dateNow;
-      }
-    };
-
-    MightyGpio.events.on(`pin[${this.pin}]:dispatch:watch`, dispatchEvent);
-    MightyGpio.events.on(`pin[${this.pin}]:observer:receive`, dispatchEvent);
-
-
-
-    /*MightyGpio.events.on(
-      `pin[${this.pin}]:observer:receive`,
-      (state: boolean) => {
-        // TODO: Check if state is ok to remove
-        const dateNow = Date.now();
-        const isRateReached = lastReported + scanRate > dateNow;
-
-        if (!isRateReached) return;
-
-        const isLowToHigh = this.state && !prevState;
-        const isHighToLow = !this.state && prevState;
-
-        if (!isLowToHigh && !isHighToLow) return;
-
-        const forHigh = requestedEdge === 1 && isLowToHigh;
-        const forLow = requestedEdge === 0 && isHighToLow;
-        const forAny = requestedEdge === "both" && this.state !== prevState;
-
-        if (forHigh || forLow || forAny) {
-          callback(this.state);
-          MightyGpio.events.emit(
-            "pin:watch",
-            requestedEdge,
-            this.pin,
-            this.state,
-          );
-        }
-      },
-    );*/
+      return true;
+    });
   }
 
   public unwatch() {
-    clearInterval(this.watcher);
+    // TODO
   }
 
   public close() {
-    this.unwatch();
-    super.close();
+    // TODO
   }
 
   public setR(value: ResistorType) {
+    // TODO: Hardware assignation
+
     switch (value) {
       case "pu":
-        this.resistor = 1;
+        this.resistor = Resistor.PullUp;
         break;
       case "pd":
-        this.resistor = 0;
+        this.resistor = Resistor.PullDown;
         break;
       default:
         this.resistor = value;
@@ -443,33 +334,47 @@ export class InputPin extends Pin {
     return { edge, callback, s };
   }
 
-  // FIXME: This method is not possible as the state is not assignable
-  /*protected async setState(value: boolean): Promise<boolean> {
-    const state = await super.setState(value);
+  protected async initGpio(pin: number) {
+    const hwPin = <ArrayGpio.InputPin>await Pin.getGpioPin(pin, PinMode.In);
 
-    //const gpio = <ArrayGpio.InputPin> await this.gpio;
-    //gpio.state = state;
+    // Reading current hardware state as default
+    const currentState = !!hwPin?.state;
 
-    return state;
-  }*/
+    const isRealAndInverted =
+      MightyGpio.inverted && MightyGpio.mode === Mode.Real;
 
-  private async initGpio(pin: number) {
-    const arrayGpio = await MightyGpio.arrayGpio;
-    const rawGpio = arrayGpio?.setInput(pin);
+    if (isRealAndInverted) {
+      this.state = !currentState;
+    } else {
+      this.state = currentState;
+    }
 
-    const gpio = <ArrayGpio.InputPin> rawGpio;
+    const MinScanRate = 1;
 
-    this.setStateSilent(!!gpio?.state);
+    let prevState = this.state;
 
-    gpio?.watch(
+    hwPin?.watch(
       Edge.Both,
       (state: boolean) => {
-        this.setStateSilent(state);
+        if (MightyGpio.inverted) {
+          state = !state;
+        }
+
+        if (state === prevState) return;
+
+        const isLowToHigh = state === true && prevState === false;
+        const isHighToLow = state === false && prevState === true;
+
+        if (isLowToHigh) {
+          this.invokeStateConfirmed(Edge.High, state);
+        } else if (isHighToLow) {
+          this.invokeStateConfirmed(Edge.Low, state);
+        }
       },
-      1,
+      MinScanRate,
     );
 
-    return gpio;
+    return hwPin;
   }
 }
 
@@ -479,6 +384,32 @@ export class OutputPin extends Pin {
   constructor(pin: number) {
     super(pin);
     this.gpio = this.initGpio(pin);
+
+    this.handleStateReceived(async (state) => {
+      const prevState = this.state;
+      this.state = state;
+
+      if (prevState === this.state) {
+        this.invokeStateConfirmed(Edge.Unknown, state);
+        return;
+      }
+
+      const isLowToHigh = this.state === true && prevState === false;
+      const isHighToLow = this.state === false && prevState === true;
+
+      if (isLowToHigh) {
+        this.invokeStateConfirmed(Edge.High, state);
+      } else if (isHighToLow) {
+        this.invokeStateConfirmed(Edge.Low, state);
+      }
+
+      const gpio = await this.gpio;
+      gpio?.write(state);
+    });
+
+    this.handleStateConfirmed((edge, state) => {
+      MightyGpio.events.emit("state-watch", this.pin, edge, state);
+    });
   }
 
   public on(...args: [(number | StateCallback)?, StateCallback?]) {
@@ -493,36 +424,49 @@ export class OutputPin extends Pin {
     state: boolean,
     ...args: [(number | StateCallback)?, StateCallback?]
   ) {
-    const { t, callback } = this.parseOnOffArgs(...args);
+    const { t: delay, callback } = this.parseOnOffArgs(...args);
 
-    const asyncProcessor = async () => {
-      await this.setState(state);
-      callback?.(this.state);
+    const dispatcher = async () => {
+      const hwPin = await this.gpio;
+
+      if (!hwPin) callback?.(state);
+      else hwPin?.write(state, (state) => callback?.(state));
+
+      const prevState = this.state;
+      this.state = state;
+
+      const isLowToHigh = state === true && prevState === false;
+      const isHighToLow = state === false && prevState === true;
+
+      // TODO: Set state-assigned to outgoing states PROCEED
+      // MightyGpio.events.on("state-assigned"
+
+      if (isLowToHigh) {
+        //this.invokeStateConfirmed(Edge.High, state);
+        MightyGpio.events.emit("state-assigned", this.pin, state);
+      } else if (isHighToLow) {
+        //this.invokeStateConfirmed(Edge.Low, state);
+        MightyGpio.events.emit("state-assigned", this.pin, state);
+      }
     };
 
-    if (t === 0) {
-      asyncProcessor();
+    if (!delay) {
+      dispatcher();
     } else {
-      setTimeout(asyncProcessor, t);
+      setTimeout(dispatcher, delay);
     }
   }
 
   public write(bit: BitState, callback?: StateCallback) {
-    this.state = !!bit;
-    callback?.(this.state);
+    this.setStateWithDelay(!!bit, callback);
   }
 
   public pulse(pw: number, callback?: Callback) {
-    const asyncProcessor = async () => {
-      await this.setState(true);
-
-      setTimeout(async () => {
-        await this.setState(false);
-        callback?.();
+    this.setStateWithDelay(true, () => {
+      setTimeout(() => {
+        this.setStateWithDelay(false, callback);
       }, pw);
-    };
-
-    asyncProcessor();
+    });
   }
 
   private parseOnOffArgs(...args: [(number | StateCallback)?, StateCallback?]) {
@@ -543,30 +487,13 @@ export class OutputPin extends Pin {
     return { t, callback };
   }
 
-  protected async setState(value: boolean) {
-    await super.setState(value);
+  protected async initGpio(pin: number) {
+    const hwPin = <ArrayGpio.OutputPin>await Pin.getGpioPin(pin, PinMode.Out);
 
-    const gpio = await this.gpio;
+    // Reading current hardware state as default
+    this.state = !!hwPin?.state;
 
-    return new Promise((resolve: StateCallback, reject) => {
-      if (gpio) {
-        gpio.write(value, resolve);
-        return;
-      }
-
-      resolve(this.state);
-    });
-  }
-
-  private async initGpio(pin: number) {
-    const rawGpio = await MightyGpio.arrayGpio?.then((arrayGpio) =>
-      arrayGpio?.setOutput(pin),
-    );
-
-    const gpio = <ArrayGpio.OutputPin>rawGpio;
-    this._state = !!gpio?.state;
-
-    return gpio;
+    return hwPin;
   }
 }
 

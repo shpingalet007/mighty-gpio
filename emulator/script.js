@@ -53,6 +53,7 @@ class MachineEmulator extends EventTarget {
 
                 if (timePassed >= delay) {
                     sendEvent()
+                    return;
                 }
 
                 console.log(delay, timePassed)
@@ -134,66 +135,6 @@ class MachineEmulator extends EventTarget {
             callback(event.detail.pin, event.detail.state);
         });
     }
-
-    /*onOutState(pin, callback) {
-        this.addEventListener("out-state", (event) => {
-            if (pin !== event.detail.pin) {
-                return;
-            }
-
-            callback(event.detail.state);
-        });
-    }
-
-    onInState(pin, callback) {
-        this.addEventListener("in-state", (event) => {
-            if (pin !== event.detail.pin) {
-                return;
-            }
-
-            callback(event.detail.state);
-        });
-    }
-
-    onOutHigh(pin, callback) {
-        this.onOutState((state) => {
-            if (state !== 1) {
-                return;
-            }
-
-            callback(1);
-        });
-    }
-
-    onOutLow(pin, callback) {
-        this.onOutState(() => {
-            if (state !== 0) {
-                return;
-            }
-
-            callback(0);
-        });
-    }
-
-    onInHigh(pin, callback) {
-        this.onInState((state) => {
-            if (state !== 1) {
-                return;
-            }
-
-            callback(1);
-        });
-    }
-
-    onInLow(pin, callback) {
-        this.onInState(() => {
-            if (state !== 0) {
-                return;
-            }
-
-            callback(0);
-        });
-    }*/
 }
 
 const emu = new MachineEmulator()
@@ -218,37 +159,3 @@ socket.on('connect', () => {
         callback(state);
     });
 });
-
-// Connection opened
-/*socket.on("pin:send", (pin, state, callback) => {
-    emu.onInState((pin, state) => {
-        //socket.send(JSON.stringify({ type: "in", pin, state}));
-        callback(state);
-    });
-});*/
-
-// Listen for messages
-/*
-socket.addEventListener("message", (event) => {
-    console.log("Message from server ", event.data);
-
-    const data = JSON.parse(event.data);
-
-    if (data.type === "in") {
-        data.state = +!data.state; // INVERSION OF INPUTS
-
-        if (data.state === 1) {
-            emu.setInHigh(data.pin);
-        } else if (data.state === 0) {
-            emu.setInLow(data.pin);
-        }
-    }
-
-    if (data.type === "out") {
-        if (data.state === 1) {
-            emu.setOutHigh(data.pin);
-        } else if (data.state === 0) {
-            emu.setOutLow(data.pin);
-        }
-    }
-});*/

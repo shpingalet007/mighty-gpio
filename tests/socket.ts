@@ -1,4 +1,4 @@
-import {Edge, HandlerCallback, MightyGpio, Mode, setInput, setOutput} from "../src/main";
+import { MightyGpio, Mode, setInput, setOutput, Edge, HandlerCallback } from "../src/main";
 import {EventEmitter} from "events";
 import express from "express";
 import { Server } from "socket.io";
@@ -34,7 +34,7 @@ function togglePin(pin: number, state: boolean) {
 global.togglePin = togglePin;
 
 MightyGpio.setMode(Mode.Real);
-//MightyGpio.setInverted();
+MightyGpio.setInverted();
 
 io.on("connection", (socket) => {
   console.log(`Socket ${socket.id} connected`);
@@ -83,25 +83,7 @@ const dis5 = setOutput(32);
 
 const led = setOutput(18);
 
-/*const in10 = MightyGpio.setInput(10);
-const out30 = MightyGpio.setOutput(30);
-
-in10.watch(Edge.Both, (state) => {
-  console.log(`Pin 10 - Was set to ${state}`);
-  console.log(`Pin 30 - Setting to ${state}`);
-  out30.write(state);
-});*/
-
-/*const btn5 = MightyGpio.setInput(38);
-const dis5 = MightyGpio.setOutput(32);
-
-btn5.watch(Edge.Both, (state) => {
-  console.log('DISPENSER =', state);
-  dis5.write(state);
-}, 1000);*/
-
 setInterval(() => {
-  // FIXME: Event not being rejected
   led.pulse(1000);
 }, 2000);
 
@@ -124,6 +106,3 @@ btn4.watch(Edge.High, (state) => {
 btn5.watch(Edge.High, (state) => {
   dis5.pulse(1000);
 });
-
-
-// TODO: When taking control from other side, there is some desync happening

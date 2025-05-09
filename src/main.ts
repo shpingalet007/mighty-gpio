@@ -1,7 +1,7 @@
 import type ArrayGpio from "array-gpio";
-import { AckEventEmitter } from "./helpers/ackevents";
-import { BroadcomScheme } from "./helpers/gpio-scheme";
-import { Edge, Resistor } from "./types/enums";
+import {AckEventEmitter} from "./helpers/ackevents";
+import {BroadcomScheme} from "./helpers/gpio-scheme";
+import {Edge, Resistor} from "./types/enums";
 import {
   Callback,
   ObserverHandler,
@@ -160,7 +160,7 @@ class Pin {
     (ArrayGpio.OutputPin | ArrayGpio.InputPin) | undefined
   > = Promise.resolve(undefined);
 
-  protected resistor?: Resistor = Resistor.PullDown;
+  protected resistor?: Resistor = Resistor.NoPull;
 
   protected state: boolean = false;
   protected isHardware: boolean = false;
@@ -318,13 +318,21 @@ export class InputPin extends Pin {
       case "pd":
         this.resistor = Resistor.PullDown;
         break;
+      case undefined:
+        this.resistor = Resistor.NoPull;
+        break;
       default:
         this.resistor = value;
     }
 
     (async () => {
       const hwPin = await this.gpio;
-      hwPin?.setR(value);
+
+      if (value === Resistor.NoPull) {
+        hwPin?.setR();
+      } else {
+        hwPin?.setR(value);
+      }
     })();
   }
 

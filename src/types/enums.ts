@@ -1,4 +1,5 @@
 export enum Resistor {
+  NoPull = -1,
   PullDown,
   PullUp,
 }

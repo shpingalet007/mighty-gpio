@@ -10,8 +10,6 @@ import express from "express";
 import { Server } from "socket.io";
 import http from "http";
 
-// TODO FOR REMOTE UI FIX FIRST CLICK NOT WORKING
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {

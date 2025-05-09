@@ -296,8 +296,6 @@ export class InputPin extends Pin {
   }
 
   public setR(value: ResistorType) {
-    // TODO: Hardware assignation
-
     switch (value) {
       case "pu":
         this.resistor = Resistor.PullUp;
@@ -308,6 +306,11 @@ export class InputPin extends Pin {
       default:
         this.resistor = value;
     }
+
+    (async () => {
+      const hwPin = await this.gpio;
+      hwPin?.setR(value);
+    })();
   }
 
   private parseWatchArgs(
@@ -444,9 +447,6 @@ export class OutputPin extends Pin {
 
       const isLowToHigh = state === true && prevState === false;
       const isHighToLow = state === false && prevState === true;
-
-      // TODO: Set state-assigned to outgoing states PROCEED
-      // MightyGpio.events.on("state-assigned"
 
       if (isLowToHigh) {
         //this.invokeStateConfirmed(Edge.High, state);

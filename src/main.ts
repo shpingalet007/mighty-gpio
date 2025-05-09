@@ -114,7 +114,7 @@ export class MightyGpio {
   }
 
   public static unwatchInput() {
-    // TODO: Refactor
+    MightyGpio.events.removeAllListeners("state-watch");
   }
 
   // Service methods
@@ -184,7 +184,13 @@ class Pin {
   }
 
   public close() {
-    // TODO: Refactor
+    this.unhandleStateReceived();
+    this.unhandleStateConfirmed();
+
+    (async () => {
+      const hwPin = await this.gpio;
+      hwPin?.close();
+    })();
   }
 
   public read(callback?: StateCallback): void {
@@ -195,12 +201,20 @@ class Pin {
     MightyGpio.events.handle(`state-received[${this.pin}]`, handler);
   }
 
+  protected unhandleStateReceived(): void {
+    MightyGpio.events.unhandle(`state-received[${this.pin}]`);
+  }
+
   protected invokeStateReceived(state: boolean) {
     return MightyGpio.events.invoke(`state-received[${this.pin}]`, state);
   }
 
   protected handleStateConfirmed(handler: StateEdgeCallback): void {
     MightyGpio.events.handle(`state-confirmed[${this.pin}]`, handler);
+  }
+
+  protected unhandleStateConfirmed(): void {
+    MightyGpio.events.unhandle(`state-confirmed[${this.pin}]`);
   }
 
   protected invokeStateConfirmed(edge: Edge, state: boolean) {
@@ -288,11 +302,12 @@ export class InputPin extends Pin {
   }
 
   public unwatch() {
-    // TODO
-  }
+    this.unhandleStateConfirmed();
 
-  public close() {
-    // TODO
+    (async() => {
+      const hwPin = await this.gpio;
+      hwPin?.unwatch();
+    })();
   }
 
   public setR(value: ResistorType) {

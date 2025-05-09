@@ -31,4 +31,8 @@ export class AckEventEmitter extends EventEmitter {
       self.emit(`RES|${eid}|${eventName}`, eid, callback(...data));
     });
   }
+
+  public unhandle(eventName: string) {
+    this.removeAllListeners(`REQ|${eventName}`);
+  }
 }

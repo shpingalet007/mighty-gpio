@@ -15,3 +15,21 @@ export enum PinMode {
   Out = "out",
   In = "in",
 }
+
+export enum GpioScheme {
+  Physical = "physical",
+  Broadcom = "broadcom",
+}
+
+export enum Mode {
+  Real = "real",
+  Emulated = "emulated",
+}
+
+export default {
+  Resistor,
+  Edge,
+  PinMode,
+  GpioScheme,
+  Mode,
+};

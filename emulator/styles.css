@@ -1,10 +1,38 @@
 #machine {
     display: inline-flex;
-    flex-direction: row;
-    padding: 100px;
+    flex-direction: column;
     background: linear-gradient(0deg, #000000 0%, #1c1c1c 100%);
     border-radius: 50px;
     border: 6px solid #0f9cb9;
+}
+
+#panel {
+    display: inline-flex;
+    flex-direction: column;
+    padding: 20px;
+}
+
+#panel .control {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+#panel label {
+    opacity: 0.8;
+    color: white;
+    font-size: 5pt;
+    font-weight: bold;
+    letter-spacing: 2pt;
+    text-transform: uppercase;
+    font-family: "Droid Sans", "Helvetica Neue", sans-serif;
+    margin-left: 10px;
+}
+
+#joints {
+    display: inline-flex;
+    flex-direction: row;
+    padding: 50px;
 }
 
 .joint {
@@ -13,7 +41,8 @@
     align-items: center;
 }
 
-.button {
+#panel .button,
+.joint .button {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -28,6 +57,17 @@
     cursor: pointer;
 }
 
+#panel .button.small {
+    box-shadow: none;
+    margin: 5px;
+}
+
+#panel .button.small {
+    width: 20px;
+    height: 20px;
+}
+
+#panel .button.small::before,
 .joint .button::before {
     content: "";
     width: 40px;
@@ -38,6 +78,17 @@
     background: transparent;
 }
 
+#panel .button.red::before,
+.joint .button.red::before {
+    border: 5px solid #843838;
+}
+
+#panel .button.blue::before,
+.joint .button.blue::before {
+    border: 5px solid #386784;
+}
+
+#panel .button.small::after,
 .joint .button::after {
     position: absolute;
     content: '';
@@ -47,12 +98,23 @@
     box-shadow: inset 0 0 3px 1px #00000060;
 }
 
+#panel .button.small::before,
+#panel .button.small::after {
+    width: 15px;
+    height: 15px;
+    border-width: 2px;
+}
+
+#panel .button.in-on::after,
+#panel .button:active::after,
 .joint .button.in-on::after,
 .joint .button:active::after {
     background-color: #00000050;
     box-shadow: inset 0 0 3px 1px #00000060, inset 0 0 3px 2px #00000060;
 }
 
+#panel .button.in-on::before,
+#panel .button:active::before,
 .joint .button.in-on::before,
 .joint .button:active::before {
     transform: scale(94%);
@@ -66,6 +128,14 @@
 .baseled.out-on .button::before,
 .button.out-on::before {
     border-color: #56cb56;
+}
+
+.button.out-on.red::before {
+    border-color: #ff3500 !important;
+}
+
+.button.out-on.blue::before {
+    border-color: #4fdfff !important;
 }
 
 @keyframes pulse {

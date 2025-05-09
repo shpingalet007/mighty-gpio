@@ -12,6 +12,11 @@ export type ObserverHandler = (
 ) => Promise<boolean>;
 export type RemoteObserverHandler = (handler: ObserverHandler) => void;
 
+export interface ObserversPack {
+  send?: ObserverHandler;
+  receive?: RemoteObserverHandler;
+}
+
 export type ResistorType = Resistor | "pu" | "pd";
 
 export type ReverseMap<T extends Record<keyof T, keyof any>> = {

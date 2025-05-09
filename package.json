@@ -4,25 +4,36 @@
   "version": "1.0.0",
   "description": "",
   "main": "dist/index.js",
+  "types": "types/mighty-gpio.d.ts",
   "scripts": {
     "build:dev": "ncc build src/main.ts -o dist --source-map",
     "build:prod": "ncc build src/main.ts -m -o dist",
-    "start:socket": "ts-node tests/socket.ts",
-    "start:socket:debug": "node --inspect-brk --enable-source-maps -r ts-node/register tests/socket.ts",
+    "start:socket": "ts-node tests/utils/socket.ts",
+    "start:socket:debug": "node --inspect-brk --enable-source-maps -r ts-node/register tests/utils/socket.ts",
+    "start:test": "ts-node tests/utils/test.ts",
+    "start:test:debug": "node --inspect-brk --enable-source-maps -r ts-node/register tests/utils/test.ts",
     "start": "ts-node src/main.ts",
     "start:debug": "node --inspect-brk --enable-source-maps -r ts-node/register src/main.ts",
-    "lint": "prettier --write {src,tests,types}/**/*.ts",
-    "install:local": "rm mighty-gpio-1.0.0.tgz ; npm pack && npm i mighty-gpio-1.0.0.tgz"
+    "lint": "prettier --write {src,tests,types}/**/*.ts src/*.ts tests/*.ts",
+    "install:local": "rm mighty-gpio-1.0.0.tgz ; npm pack && npm i mighty-gpio-1.0.0.tgz",
+    "link": "npm link",
+    "test": "mocha",
+    "coverage": "c8 npm run test"
   },
   "dependencies": {
     "@types/node": "^22.14.1",
-    "mighty-gpio": "file:mighty-gpio-1.0.0.tgz",
     "ts-node": "^10.9.2"
   },
   "devDependencies": {
+    "@istanbuljs/nyc-config-typescript": "^1.0.2",
+    "@types/chai": "^5.2.2",
     "@types/express": "^5.0.1",
+    "@types/mocha": "^10.0.10",
     "@vercel/ncc": "^0.38.3",
+    "c8": "^10.1.3",
+    "chai": "^5.2.0",
     "express": "^5.1.0",
+    "mocha": "^11.2.2",
     "prettier": "^3.5.3",
     "socket.io": "^4.8.1",
     "typescript": "^5.5.3"

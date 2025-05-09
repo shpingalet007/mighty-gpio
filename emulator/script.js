@@ -168,8 +168,8 @@ class MachineEmulator extends EventTarget {
 const emu = new MachineEmulator()
 
 //const socket = new WebSocket("ws://192.168.7.237:8080/gpio");
-//const socket = io("http://127.0.0.1:4000");
-const socket = io("http://192.168.7.107:4000");
+const socket = io("http://127.0.0.1:4000");
+//const socket = io("http://192.168.7.107:4000");
 
 socket.on('connect', () => {
     emu.onInState((pin, state, resistor) => {

@@ -9,16 +9,20 @@ export class AckEventEmitter extends EventEmitter {
     const id = Buffer.from(randomBytes(5)).toString("hex");
 
     return new Promise((resolve: (...args: any[]) => void, reject) => {
-      const timeout = setTimeout(() => {
-        reject(Error(`AckEvent RES|${id}|${eventName} considered stale`));
-      }, AckEventEmitter.StaleTime);
-
-      this.once(`RES|${id}|${eventName}`, (eid: string, ...args) => {
+      const dispatcher = (eid: string, ...args: any[]) => {
         if (id !== eid) return;
 
         clearTimeout(timeout);
         resolve(...args);
-      });
+      };
+
+      const timeout = setTimeout(() => {
+        // TODO: This event must be killed outside when instance is closed
+        console.log(`AckEvent RES|${id}|${eventName} considered stale`);
+        this.off(`RES|${id}|${eventName}`, dispatcher);
+      }, AckEventEmitter.StaleTime);
+
+      this.once(`RES|${id}|${eventName}`, dispatcher);
 
       this.emit(`REQ|${eventName}`, id, ...data);
     });

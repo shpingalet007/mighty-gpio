@@ -1,4 +1,4 @@
-import {ReverseMap} from "../types/types";
+import { ReverseMap } from "../types/types";
 
 export const BroadcomScheme = {
   2: 3,
@@ -26,11 +26,11 @@ export const BroadcomScheme = {
   24: 18,
   25: 22,
   26: 37,
-  27: 13
+  27: 13,
 };
 
-export const PhysicalScheme = <unknown> Object.fromEntries(
-  Object
-    .entries(BroadcomScheme)
-    .map(([key, value]) => [value, key])
-) as ReverseMap<typeof BroadcomScheme>;
+export const PhysicalScheme = (<unknown>(
+  Object.fromEntries(
+    Object.entries(BroadcomScheme).map(([key, value]) => [value, key]),
+  )
+)) as ReverseMap<typeof BroadcomScheme>;

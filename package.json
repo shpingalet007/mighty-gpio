@@ -11,7 +11,7 @@
     "start:socket:debug": "node --inspect-brk --enable-source-maps -r ts-node/register tests/socket.ts",
     "start": "ts-node src/main.ts",
     "start:debug": "node --inspect-brk --enable-source-maps -r ts-node/register src/main.ts",
-    "lint": "prettier --write {src,tests,types}/*.ts",
+    "lint": "prettier --write {src,tests,types}/**/*.ts",
     "install:local": "rm mighty-gpio-1.0.0.tgz ; npm pack && npm i mighty-gpio-1.0.0.tgz"
   },
   "dependencies": {

@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
-import {clearTimeout} from "node:timers";
-import {EventEmitter} from "events";
+import { clearTimeout } from "node:timers";
+import { EventEmitter } from "events";
 
 export class AckEventEmitter extends EventEmitter {
   private static StaleTime = 10000;

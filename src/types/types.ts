@@ -1,4 +1,4 @@
-import {Edge, Resistor} from "./enums";
+import { Edge, Resistor } from "./enums";
 
 export type StateCallback = (state: boolean) => void;
 export type StateEdgeCallback = (edge: Edge, state: boolean) => void;

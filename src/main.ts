@@ -310,7 +310,7 @@ export class InputPin extends Pin {
     })();
   }
 
-  public setR(value: ResistorType) {
+  public setR(value?: ResistorType) {
     switch (value) {
       case "pu":
         this.resistor = Resistor.PullUp;

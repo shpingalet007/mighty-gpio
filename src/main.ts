@@ -1,7 +1,7 @@
 import type ArrayGpio from "array-gpio";
 import {AckEventEmitter} from "./helpers/ackevents";
 import {BroadcomScheme} from "./helpers/gpio-scheme";
-import {Edge, Resistor} from "./types/enums";
+import {Edge, PinMode, Resistor} from "./types/enums";
 import {
   Callback,
   ObserverHandler,
@@ -24,11 +24,6 @@ enum Mode {
 }
 
 type BitState = 1 | true | 0 | false;
-
-enum PinMode {
-  Out = "out",
-  In = "in",
-}
 
 enum GpioScheme {
   Physical = "physical",
@@ -64,18 +59,18 @@ export class MightyGpio {
   public static setObservers(observers: ObserversPack) {
     MightyGpio._observers = observers;
 
-    MightyGpio._observers.receive?.(async (pin, state) => {
+    MightyGpio._observers.receive?.(async (pin, state, mode, resistor) => {
       /**
        * Input and Output classes replicate this functionality differently.
        * For this reason here we would only send event that there is a pin
        * state change registered.
        */
 
-      return await this.events.invoke(`state-received[${pin}]`, state);
+      return await this.events.invoke(`state-received[${pin}]`, state, mode, resistor);
     });
 
-    MightyGpio.events.on("state-assigned", (pin: number, state: boolean) => {
-      MightyGpio._observers.send?.(pin, state);
+    MightyGpio.events.on("state-assigned", (pin: number, state: boolean, mode: PinMode, resistor?: Resistor) => {
+      MightyGpio._observers.send?.(pin, state, mode, resistor);
     });
   }
 
@@ -160,8 +155,6 @@ class Pin {
     (ArrayGpio.OutputPin | ArrayGpio.InputPin) | undefined
   > = Promise.resolve(undefined);
 
-  protected resistor?: Resistor = Resistor.NoPull;
-
   protected state: boolean = false;
   protected isHardware: boolean = false;
 
@@ -245,6 +238,8 @@ class Pin {
 
 export class InputPin extends Pin {
   protected gpio: Promise<ArrayGpio.InputPin | undefined>;
+
+  protected resistor: Resistor = Resistor.NoPull;
 
   constructor(pin: number) {
     super(pin);
@@ -402,7 +397,12 @@ export class InputPin extends Pin {
           this.invokeStateConfirmed(Edge.Low, state);
         }
 
-        prevState = state;
+        if (isLowToHigh || isHighToLow) {
+          prevState = state;
+
+          const resistorString = Resistor[this.resistor] as keyof typeof Resistor;
+          MightyGpio.events.emit("state-assigned", this.pin, state, PinMode.In, resistorString);
+        }
       },
       MinScanRate,
     );
@@ -471,12 +471,8 @@ export class OutputPin extends Pin {
       const isLowToHigh = state === true && prevState === false;
       const isHighToLow = state === false && prevState === true;
 
-      if (isLowToHigh) {
-        //this.invokeStateConfirmed(Edge.High, state);
-        MightyGpio.events.emit("state-assigned", this.pin, state);
-      } else if (isHighToLow) {
-        //this.invokeStateConfirmed(Edge.Low, state);
-        MightyGpio.events.emit("state-assigned", this.pin, state);
+      if (isLowToHigh || isHighToLow) {
+        MightyGpio.events.emit("state-assigned", this.pin, state, PinMode.Out);
       }
     };
 

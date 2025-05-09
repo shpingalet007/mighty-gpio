@@ -10,3 +10,8 @@ export enum Edge {
   Both = "both",
   Unknown = "unknown",
 }
+
+export enum PinMode {
+  Out = "out",
+  In = "in",
+}

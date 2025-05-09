@@ -8,7 +8,7 @@ class MachineEmulator extends EventTarget {
     getOutputs = (pin) => [...document.querySelectorAll(`[out="${pin}"]`)]
 
     getAllInputs = () => [...document.querySelectorAll("[in]")]
-    getInputs = (pin) => [...document.querySelectorAll(`[in="${pin}"]`)]
+    getInputs = (pin, res) => [...document.querySelectorAll(`[in="${pin}"],[in="${res}:${pin}"]`)]
 
     initListeners() {
         const inputs = this.getAllInputs()
@@ -17,6 +17,8 @@ class MachineEmulator extends EventTarget {
             input.addEventListener("mousedown", () => {
                 if (input.blocked) return
                 input.blocked = true
+
+                this.setInState(input, 1);
 
                 input.clicktime = Date.now()
 
@@ -35,6 +37,8 @@ class MachineEmulator extends EventTarget {
             input.addEventListener("mouseup", () => {
                 const sendEvent = () => {
                     input.blocked = false;
+
+                    this.setInState(input, 0);
 
                     const inState = new CustomEvent("in-state", {
                         detail: {
@@ -64,6 +68,14 @@ class MachineEmulator extends EventTarget {
         this.addEventListener("out-state", (event) => {
             console.log(event);
 
+            /*let strResistor;
+
+            switch (event.detail.resistor) {
+                case 0: strResistor = "pd"; break;
+                case 1: strResistor = "pu"; break;
+                case -1: strResistor = "pn"; break;
+            }*/
+
             const targetOutputs = this.getOutputs(event.detail.pin)
 
             targetOutputs.forEach((output) => {
@@ -71,10 +83,18 @@ class MachineEmulator extends EventTarget {
             })
         })
 
-        this.addEventListener("in-state", (event) => {
+        this.addEventListener("in-state-watcher", (event) => {
             console.log(event);
 
-            const targetInputs = this.getInputs(event.detail.pin)
+            let resistorString;
+
+            switch (event.detail.resistor) {
+                case "PullUp": resistorString = "pu"; break;
+                case "PullDown": resistorString = "pd"; break;
+                case "NoPull": resistorString = "pn"; break;
+            }
+
+            const targetInputs = this.getInputs(event.detail.pin, resistorString)
 
             targetInputs.forEach((inputs) => {
                 this.setInState(inputs, event.detail.state)
@@ -84,9 +104,9 @@ class MachineEmulator extends EventTarget {
 
     setOutState(element, state) {
         if (state === 1) {
-            element.classList.add("out-on")
+            element.classList.add("out-on");
         } else if (state === 0) {
-            element.classList.remove("out-on")
+            element.classList.remove("out-on");
         }
     }
 
@@ -101,6 +121,12 @@ class MachineEmulator extends EventTarget {
     static createInputEvent(pin, state) {
         return new CustomEvent("in-state", {
             detail: { pin, state },
+        })
+    }
+
+    static createInputWatcherEvent(pin, resistor, state) {
+        return new CustomEvent("in-state-watcher", {
+            detail: { pin, resistor, state },
         })
     }
 
@@ -120,17 +146,19 @@ class MachineEmulator extends EventTarget {
         this.dispatchEvent(event);
     }
 
-    setInHigh(pin) {
-        const event = MachineEmulator.createInputEvent(pin, 1);
+    setInHigh(pin, resistor) {
+        const event = MachineEmulator.createInputWatcherEvent(pin, resistor, 1);
         this.dispatchEvent(event);
     }
 
-    setInLow(pin) {
-        const event = MachineEmulator.createInputEvent(pin, 0);
+    setInLow(pin, resistor) {
+        const event = MachineEmulator.createInputWatcherEvent(pin, resistor, 0);
         this.dispatchEvent(event);
     }
 
     onInState(callback) {
+        // TODO: Incoming pin state is echoed back due to events issue. PROCEED
+
         this.addEventListener("in-state", (event) => {
             callback(event.detail.pin, event.detail.state);
         });
@@ -144,17 +172,27 @@ const emu = new MachineEmulator()
 const socket = io("http://192.168.7.107:4000");
 
 socket.on('connect', () => {
-    emu.onInState((pin, state) => {
-        socket.emit("pin:toggle", pin, !!state, () => {
-            console.log('Hello world')
+    emu.onInState((pin, state, resistor) => {
+        socket.emit("pin:toggle", pin, !!state, resistor, () => {
+            console.log('Hello world');
         });
     });
 
-    socket.on("pin:send", (pin, state, callback) => {
-        if (state === true) {
-            emu.setOutHigh(pin);
-        } else {
-            emu.setOutLow(pin);
+    socket.on("pin:send", (pin, state, mode, resistor, callback) => {
+        if (mode === "in") {
+            if (state === true) {
+                emu.setInHigh(pin, resistor);
+            } else {
+                emu.setInLow(pin, resistor);
+            }
+        }
+
+        if (mode === "out") {
+            if (state === true) {
+                emu.setOutHigh(pin);
+            } else {
+                emu.setOutLow(pin);
+            }
         }
 
         callback(state);

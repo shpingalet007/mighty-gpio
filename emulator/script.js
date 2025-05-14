@@ -28,6 +28,7 @@ class MachineEmulator extends EventTarget {
                     detail: {
                         state: 1,
                         pin: input.getAttribute("in"),
+                        mode: "in",
                     },
                 })
 
@@ -44,6 +45,7 @@ class MachineEmulator extends EventTarget {
                         detail: {
                             state: 0,
                             pin: input.getAttribute("in"),
+                            mode: "in",
                         },
                     })
 
@@ -160,7 +162,7 @@ class MachineEmulator extends EventTarget {
         // TODO: Incoming pin state is echoed back due to events issue. PROCEED
 
         this.addEventListener("in-state", (event) => {
-            callback(event.detail.pin, event.detail.state);
+            callback(event.detail.pin, event.detail.state, event.detail.mode);
         });
     }
 }
@@ -172,8 +174,8 @@ const socket = io("http://127.0.0.1:4000");
 //const socket = io("http://192.168.7.107:4000");
 
 socket.on('connect', () => {
-    emu.onInState((pin, state, resistor) => {
-        socket.emit("pin:toggle", pin, !!state, resistor, () => {
+    emu.onInState((pin, state, mode, resistor) => {
+        socket.emit("pin:toggle", pin, !!state, mode, resistor, () => {
             console.log('Hello world');
         });
     });

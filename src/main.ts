@@ -8,7 +8,7 @@ import {
   StateCallback,
   StateEdgeCallback,
 } from "./types/types";
-import { Edge, GpioScheme, PinMode, Resistor, Mode } from "./types/enums";
+import { Edge, GpioScheme, Mode, PinMode, Resistor } from "./types/enums";
 
 export { ObserverHandler, ObserversPack } from "./types/types";
 
@@ -263,6 +263,10 @@ class Pin {
       });
   }
 
+  protected setObserverState(state: boolean, mode: PinMode) {
+    MightyGpio.events.emit("state-assigned", this.pin, state, mode);
+  }
+
   protected static async getGpioPin(
     pin: number,
     mode: PinMode,
@@ -326,6 +330,11 @@ class InputPin extends Pin {
        * set on hardware level.
        */
     });
+  }
+
+  public close() {
+    super.close();
+    this.setObserverState(false, PinMode.In);
   }
 
   public watch(
@@ -499,6 +508,11 @@ class OutputPin extends Pin {
       const gpio = await this.gpio;
       gpio?.write(state);
     });
+  }
+
+  public close() {
+    super.close();
+    this.setObserverState(false, PinMode.Out);
   }
 
   public on(...args: [(number | StateCallback)?, StateCallback?]) {

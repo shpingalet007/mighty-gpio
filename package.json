@@ -10,13 +10,7 @@
     "build:prod": "ncc build src/main.ts -m -o dist",
     "start:socket": "ts-node tests/utils/socket.ts",
     "start:socket:debug": "node --inspect-brk --enable-source-maps -r ts-node/register tests/utils/socket.ts",
-    "start:test": "ts-node tests/utils/test.ts",
-    "start:test:debug": "node --inspect-brk --enable-source-maps -r ts-node/register tests/utils/test.ts",
-    "start": "ts-node src/main.ts",
-    "start:debug": "node --inspect-brk --enable-source-maps -r ts-node/register src/main.ts",
     "lint": "prettier --write {src,tests,types}/**/*.ts src/*.ts tests/*.ts",
-    "install:local": "rm mighty-gpio-1.0.0.tgz ; npm pack && npm i mighty-gpio-1.0.0.tgz",
-    "link": "npm link",
     "test": "mocha",
     "coverage": "c8 npm run test"
   },

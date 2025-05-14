@@ -69,6 +69,24 @@ describe("Input methods", () => {
     it("Single pin", () => {
       const in20 = MightyGpio.setInput(20);
 
+      // @ts-ignore
+      expect(in20.resistor).to.equal(Resistor.NoPull);
+
+      in20.setR(Resistor.PullUp);
+
+      // @ts-ignore
+      expect(in20.resistor).to.equal(Resistor.PullUp);
+
+      in20.setR(Resistor.PullDown);
+
+      // @ts-ignore
+      expect(in20.resistor).to.equal(Resistor.PullDown);
+
+      in20.setR();
+
+      // @ts-ignore
+      expect(in20.resistor).to.equal(Resistor.NoPull);
+
       expect(in20.constructor.name).to.equal("InputPin");
       expect(in20.pin).to.be.equal(20);
       expect(in20.state).to.equal(false);
@@ -277,8 +295,7 @@ describe("Input methods", () => {
               reject(Error("Failed to set global pin watchers"));
             else if (res[1] === "UNWATCH_FAIL")
               reject(Error("Failed to unset global pin watchers"));
-            else
-              resolve();
+            else resolve();
           });
         });
       }
@@ -447,7 +464,7 @@ describe("Output methods", () => {
       });
     });
 
-    it("Trigger with pulse", async () => {
+    it("Trigger with pulse", () => {
       const in20 = MightyGpio.setOutput(20);
 
       function pulse(): Promise<void> {
@@ -469,6 +486,37 @@ describe("Output methods", () => {
         delay(() => expect(in20.state).to.equal(true), 10),
         delay(() => expect(in20.state).to.equal(false), 12),
       ]);
+    });
+
+    it("Trigger from Observer", async () => {
+      const out20 = MightyGpio.setOutput(20);
+      await MightyGpio.ready(out20);
+
+      setPin(20, true, PinMode.Out);
+
+      await new Promise<void>((resolve, reject) => {
+        setTimeout(() => {
+          try {
+            expect(out20.state).to.equal(true);
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        }, 1);
+      });
+
+      setPin(20, false, PinMode.Out);
+
+      await new Promise<void>((resolve, reject) => {
+        setTimeout(() => {
+          try {
+            expect(out20.state).to.equal(false);
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        }, 1);
+      });
     });
   });
 });

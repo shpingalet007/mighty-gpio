@@ -71,12 +71,12 @@ export default class MightyGpio {
   // Public methods
 
   public static setInput = (...param: [number | ArrayGpio.Option] | number[]) =>
-    MightyGpio.initPin(param, InputPin);
+    <InputPin>MightyGpio.initPin(param, InputPin);
   public static in = this.setInput;
 
   public static setOutput = (
     ...param: [number | ArrayGpio.Option] | number[]
-  ) => MightyGpio.initPin(param, OutputPin);
+  ) => <OutputPin>MightyGpio.initPin(param, OutputPin);
   public static out = this.setOutput;
 
   public static watchInput(
@@ -106,6 +106,14 @@ export default class MightyGpio {
 
   public static unwatchInput() {
     MightyGpio.events.removeAllListeners("state-watch");
+  }
+
+  public static async ready(
+    pins: InputPin | OutputPin | (InputPin | OutputPin)[],
+  ) {
+    const prepared = [pins].flat().map((pin) => pin.ready());
+
+    return await Promise.all(prepared).then(() => true);
   }
 
   // Service methods
@@ -205,6 +213,10 @@ class Pin {
 
     this.pin = pin;
     this.state = false;
+  }
+
+  public ready() {
+    return this.gpio.then(() => true);
   }
 
   public close() {
@@ -353,28 +365,17 @@ class InputPin extends Pin {
   }
 
   public setR(value?: ResistorType) {
-    switch (value) {
-      case "pu":
-        this.resistor = Resistor.PullUp;
-        break;
-      case "pd":
-        this.resistor = Resistor.PullDown;
-        break;
-      case undefined:
-        this.resistor = Resistor.NoPull;
-        break;
-      default:
-        this.resistor = value;
+    if (value === undefined) {
+      this.resistor = Resistor.NoPull;
+    } else if (value === "pu" || value === 1) {
+      this.resistor = Resistor.PullUp;
+    } else if (value === "pd" || value === 0) {
+      this.resistor = Resistor.PullDown;
     }
 
     (async () => {
       const hwPin = await this.gpio;
-
-      if (value === Resistor.NoPull) {
-        hwPin?.setR();
-      } else {
-        hwPin?.setR(value);
-      }
+      hwPin?.setR(value);
     })();
   }
 

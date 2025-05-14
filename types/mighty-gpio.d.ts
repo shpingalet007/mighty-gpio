@@ -15,6 +15,10 @@ declare module "mighty-gpio" {
   export const forceEmulation: () => boolean;
   export const isBroadcomScheme: () => boolean;
 
+  export const ready: (
+    pins: InputPin | OutputPin | (InputPin | OutputPin)[],
+  ) => Promise<boolean>;
+
   interface Pin {
     state: boolean;
 

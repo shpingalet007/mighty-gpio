@@ -2,9 +2,13 @@ import express from "express";
 import { Server } from "socket.io";
 import http from "http";
 
-import MightyGpio, { setInput, setOutput } from "mighty-gpio";
+import type * as MightyGpioDeclaration from "mighty-gpio";
+
+import _MightyGpio, { setInput, setOutput } from "../../src/main";
 import { Edge, PinMode, Resistor } from "../../src/types/enums";
 import { ObserverHandler } from "../../src/types/types";
+
+const MightyGpio = (<unknown>_MightyGpio) as typeof MightyGpioDeclaration;
 
 const app = express();
 const server = http.createServer(app);
@@ -73,7 +77,7 @@ const dis5 = setOutput(12);
 const led = setOutput(24);
 
 const door = setInput(23);
-const doorSignal = setOutput(30);
+const doorSignal = setOutput(25);
 
 const coins = setInput(22);
 const bills = setInput(4);
@@ -82,12 +86,11 @@ setInterval(() => {
   led.pulse(1000);
 }, 2000);
 
-door.watch(() => {
-  console.log("Door signal");
+door.watch(Edge.High, () => console.log("Door close"));
+door.watch(Edge.Low, () => {
+  console.log("Door open");
   doorSignal.pulse(1000);
 });
-door.watch(Edge.High, () => console.log("Door close"));
-door.watch(Edge.Low, () => console.log("Door open"));
 
 let isCounting = false;
 let moneyCount = 0;

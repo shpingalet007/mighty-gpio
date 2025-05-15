@@ -66,6 +66,8 @@ export default class MightyGpio {
         MightyGpio._observers.send?.(pin, state, mode, resistor);
       },
     );
+
+    MightyGpio.events.emit("inform-state");
   }
 
   // Public methods
@@ -188,13 +190,19 @@ export default class MightyGpio {
 }
 
 class Pin {
+  protected mode: PinMode | undefined;
+  protected resistor: Resistor = Resistor.NoPull;
+
+  public state: boolean = false;
+
+  private id = Math.floor((Math.random() * 10 ** 5)).toString(26);
+
   public isMighty: boolean = true;
 
   protected gpio: Promise<
     (ArrayGpio.OutputPin | ArrayGpio.InputPin) | undefined
   > = Promise.resolve(undefined);
 
-  protected state: boolean = false;
   protected isHardware: boolean = false;
 
   get isOff(): boolean {
@@ -211,6 +219,8 @@ class Pin {
     // This import has effect only on any first GPIO use
     MightyGpio._importArrayGpio();
 
+    this.listenInform();
+
     this.pin = pin;
     this.state = false;
   }
@@ -222,10 +232,13 @@ class Pin {
   public close() {
     this.unhandleStateReceived();
     this.unhandleStateConfirmed();
+    this.unlistenInform();
 
     (async () => {
       const hwPin = await this.gpio;
       hwPin?.close();
+
+      this.setObserverState(false);
     })();
   }
 
@@ -241,6 +254,18 @@ class Pin {
 
   protected unhandleStateReceived(): void {
     MightyGpio.events.unhandle(`state-received[${this.pin}]`);
+  }
+
+  private _informListener = () => {
+    this.setObserverState(this.state);
+  };
+
+  protected listenInform(): void {
+    MightyGpio.events.on('inform-state', this._informListener);
+  }
+
+  protected unlistenInform(): void {
+    MightyGpio.events.off('inform-state', this._informListener);
   }
 
   protected invokeStateReceived(state: boolean) {
@@ -263,8 +288,14 @@ class Pin {
       });
   }
 
-  protected setObserverState(state: boolean, mode: PinMode) {
-    MightyGpio.events.emit("state-assigned", this.pin, state, mode);
+  protected setObserverState(state: boolean, resistor?: keyof typeof Resistor) {
+    MightyGpio.events.emit(
+      "state-assigned",
+      this.pin,
+      state,
+      <PinMode>this.mode,
+      resistor,
+    );
   }
 
   protected static async getGpioPin(
@@ -286,6 +317,8 @@ class Pin {
 }
 
 class InputPin extends Pin {
+  protected readonly mode = PinMode.In;
+
   protected gpio: Promise<ArrayGpio.InputPin | undefined>;
 
   protected resistor: Resistor = Resistor.NoPull;
@@ -330,11 +363,6 @@ class InputPin extends Pin {
        * set on hardware level.
        */
     });
-  }
-
-  public close() {
-    super.close();
-    this.setObserverState(false, PinMode.In);
   }
 
   public watch(
@@ -460,13 +488,8 @@ class InputPin extends Pin {
           const resistorString = Resistor[
             this.resistor
           ] as keyof typeof Resistor;
-          MightyGpio.events.emit(
-            "state-assigned",
-            this.pin,
-            state,
-            PinMode.In,
-            resistorString,
-          );
+
+          this.setObserverState(state, resistorString);
         }
       },
       MinScanRate,
@@ -477,6 +500,8 @@ class InputPin extends Pin {
 }
 
 class OutputPin extends Pin {
+  protected readonly mode = PinMode.Out;
+
   protected gpio: Promise<ArrayGpio.OutputPin | undefined>;
 
   constructor(pin: number) {
@@ -508,11 +533,6 @@ class OutputPin extends Pin {
       const gpio = await this.gpio;
       gpio?.write(state);
     });
-  }
-
-  public close() {
-    super.close();
-    this.setObserverState(false, PinMode.Out);
   }
 
   public on(...args: [(number | StateCallback)?, StateCallback?]) {
@@ -554,7 +574,7 @@ class OutputPin extends Pin {
       const isHighToLow = state === false && prevState === true;
 
       if (isLowToHigh || isHighToLow) {
-        MightyGpio.events.emit("state-assigned", this.pin, state, PinMode.Out);
+        this.setObserverState(state);
       }
     };
 

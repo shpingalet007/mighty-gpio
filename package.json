@@ -10,7 +10,7 @@
     "build:prod": "ncc build src/main.ts -m -o dist",
     "start:socket": "ts-node tests/utils/socket.ts",
     "start:socket:debug": "node --inspect-brk --enable-source-maps -r ts-node/register tests/utils/socket.ts",
-    "lint": "prettier --write {src,tests,types}/**/*.ts src/*.ts tests/*.ts",
+    "lint": "prettier --write '{src,tests,types}/**/*.ts'",
     "test": "mocha",
     "coverage": "c8 npm run test"
   },

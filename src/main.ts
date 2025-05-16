@@ -9,6 +9,7 @@ import {
   StateEdgeCallback,
 } from "./types/types";
 import { Edge, GpioScheme, Mode, PinMode, Resistor } from "./types/enums";
+import { EventEmitter } from "events";
 
 export { ObserverHandler, ObserversPack } from "./types/types";
 
@@ -20,6 +21,7 @@ export default class MightyGpio {
   public static gpioScheme = GpioScheme.Physical;
 
   public static events = new AckEventEmitter();
+  public static gpioEvents = new EventEmitter();
 
   public static arrayGpio: Promise<typeof ArrayGpio | null>;
 
@@ -67,7 +69,7 @@ export default class MightyGpio {
       },
     );
 
-    MightyGpio.events.emit("inform-state");
+    MightyGpio.gpioEvents.emit("inform-state");
   }
 
   // Public methods
@@ -195,7 +197,7 @@ class Pin {
 
   public state: boolean = false;
 
-  private id = Math.floor((Math.random() * 10 ** 5)).toString(26);
+  private id = Math.floor(Math.random() * 10 ** 5).toString(26);
 
   public isMighty: boolean = true;
 
@@ -261,11 +263,11 @@ class Pin {
   };
 
   protected listenInform(): void {
-    MightyGpio.events.on('inform-state', this._informListener);
+    MightyGpio.gpioEvents.on("inform-state", this._informListener);
   }
 
   protected unlistenInform(): void {
-    MightyGpio.events.off('inform-state', this._informListener);
+    MightyGpio.gpioEvents.off("inform-state", this._informListener);
   }
 
   protected invokeStateReceived(state: boolean) {
@@ -618,6 +620,9 @@ class OutputPin extends Pin {
     return hwPin;
   }
 }
+
+const maxPinsInUse = Object.values(BroadcomScheme).length;
+MightyGpio.gpioEvents.setMaxListeners(maxPinsInUse);
 
 export const setInput = MightyGpio.setInput;
 export const setOutput = MightyGpio.setOutput;

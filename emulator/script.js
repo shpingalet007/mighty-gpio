@@ -22,13 +22,16 @@ class MachineEmulator extends EventTarget {
 
                 input.clicktime = Date.now()
 
-                console.log(`InputPin ${input.getAttribute("in")} state HIGH`)
+                const pinParams = input.getAttribute("in");
+
+                console.log(`InputPin ${pinParams} state HIGH`)
 
                 const inState = new CustomEvent("in-state", {
                     detail: {
                         state: 1,
-                        pin: input.getAttribute("in"),
+                        pin: MachineEmulator.getPinNumber(pinParams),
                         mode: "in",
+                        resistor: MachineEmulator.getResistor(pinParams),
                     },
                 })
 
@@ -39,13 +42,16 @@ class MachineEmulator extends EventTarget {
                 const sendEvent = () => {
                     input.blocked = false;
 
+                    const pinParams = input.getAttribute("in");
+
                     this.setInState(input, 0);
 
                     const inState = new CustomEvent("in-state", {
                         detail: {
                             state: 0,
-                            pin: input.getAttribute("in"),
+                            pin: MachineEmulator.getPinNumber(pinParams),
                             mode: "in",
+                            resistor: MachineEmulator.getResistor(pinParams),
                         },
                     })
 
@@ -162,16 +168,31 @@ class MachineEmulator extends EventTarget {
         // TODO: Incoming pin state is echoed back due to events issue. PROCEED
 
         this.addEventListener("in-state", (event) => {
-            callback(event.detail.pin, event.detail.state, event.detail.mode);
+            callback(event.detail.pin, event.detail.state, event.detail.mode, event.detail.resistor);
         });
+    }
+
+    static getResistor(params) {
+        const pinParams = params.split(":").reverse();
+
+        switch (pinParams[1]) {
+            case "pu": return "PullUp";
+            case "pd": return "PullDown";
+            case "pn": return "NoPull";
+        }
+    }
+
+    static getPinNumber(params) {
+        const pinParams = params.split(":").reverse();
+        return pinParams[0];
     }
 }
 
 const emu = new MachineEmulator()
 
 //const socket = new WebSocket("ws://192.168.7.237:8080/gpio");
-const socket = io("http://127.0.0.1:4000");
-//const socket = io("http://192.168.7.107:4000");
+const socket = io("http://192.168.7.107:4000");
+//const socket = io("http://192.168.7.116:4000");
 
 socket.on('connect', () => {
     emu.onInState((pin, state, mode, resistor) => {

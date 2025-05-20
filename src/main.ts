@@ -7,6 +7,7 @@ import {
   ResistorType,
   StateCallback,
   StateEdgeCallback,
+  StateModeResistorCallback,
 } from "./types/types";
 import { Edge, GpioScheme, Mode, PinMode, Resistor } from "./types/enums";
 import { EventEmitter } from "events";
@@ -250,7 +251,7 @@ class Pin {
     return this.state;
   }
 
-  protected handleStateReceived(handler: StateCallback): void {
+  protected handleStateReceived(handler: StateModeResistorCallback): void {
     MightyGpio.events.handle(`state-received[${this.pin}]`, handler);
   }
 
@@ -336,14 +337,25 @@ class InputPin extends Pin {
       return true;
     });
 
-    this.handleStateReceived(async (state) => {
+    this.handleStateReceived(async (state, mode, resistor) => {
       const prevState = this.state;
-      this.state = state;
 
-      if (prevState === this.state) {
-        this.invokeStateConfirmed(Edge.Unknown, state);
+      const isResistorCorrect = Resistor[resistor] !== this.resistor;
+      const isResistorSpecified = !!resistor;
+
+      if (isResistorSpecified && isResistorCorrect) {
+        // TODO: State must not be confirmed. It is placed here just to not break handlers
+        this.invokeStateConfirmed(Edge.Unknown, this.state);
         return;
       }
+
+      if (prevState === state) {
+        // TODO: State must not be confirmed. It is placed here just to not break handlers
+        this.invokeStateConfirmed(Edge.Unknown, this.state);
+        return;
+      }
+
+      this.state = state;
 
       const isLowToHigh = this.state && !prevState;
       const isHighToLow = !this.state && prevState;
@@ -510,11 +522,12 @@ class OutputPin extends Pin {
     super(pin);
     this.gpio = this.initGpio(this.pin);
 
-    this.handleStateReceived(async (state) => {
+    this.handleStateReceived(async (state, mode, resistor) => {
       const prevState = this.state;
       this.state = state;
 
       if (prevState === this.state) {
+        // TODO: State must not be confirmed. It is placed here just to not break handlers
         this.invokeStateConfirmed(Edge.Unknown, state);
         return;
       }
@@ -576,7 +589,10 @@ class OutputPin extends Pin {
       const isHighToLow = state === false && prevState === true;
 
       if (isLowToHigh || isHighToLow) {
-        this.setObserverState(state);
+        this.setObserverState(
+          state,
+          Resistor[this.resistor] as keyof typeof Resistor,
+        );
       }
     };
 

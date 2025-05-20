@@ -82,9 +82,13 @@ const doorSignal = setOutput(25);
 const coins = setInput(22);
 const bills = setInput(4);
 
-setInterval(() => {
+[btn1, btn2, btn3, btn4, btn5, coins, bills].forEach((btn) => btn.setR(1));
+
+/*setInterval(() => {
   led.pulse(1000);
-}, 2000);
+}, 2000);*/
+
+led.on();
 
 door.watch(Edge.High, () => console.log("Door close"));
 door.watch(Edge.Low, () => {

@@ -202,9 +202,10 @@ class Pin {
 
   public isMighty: boolean = true;
 
-  protected gpio: Promise<
-    (ArrayGpio.OutputPin | ArrayGpio.InputPin) | undefined
-  > = Promise.resolve(undefined);
+  protected gpioPromise: Promise<
+  (ArrayGpio.OutputPin | ArrayGpio.InputPin) | undefined> = Promise.resolve(undefined);
+
+  protected gpio: (ArrayGpio.OutputPin | ArrayGpio.InputPin) | undefined;
 
   protected isHardware: boolean = false;
 
@@ -229,7 +230,7 @@ class Pin {
   }
 
   public ready() {
-    return this.gpio.then(() => true);
+    return this.gpioPromise.then(() => true);
   }
 
   public close() {
@@ -237,12 +238,18 @@ class Pin {
     this.unhandleStateConfirmed();
     this.unlistenInform();
 
-    (async () => {
-      const hwPin = await this.gpio;
-      hwPin?.close();
-
+    if (this.gpio) {
+      this.gpio?.close();
       this.setObserverState(false);
+      return;
+    }
+
+    (async () => {
+      const hwPin = await this.gpioPromise;
+      hwPin?.close();
     })();
+
+    this.setObserverState(false);
   }
 
   public read(callback?: StateCallback): boolean {
@@ -322,13 +329,14 @@ class Pin {
 class InputPin extends Pin {
   protected readonly mode = PinMode.In;
 
-  protected gpio: Promise<ArrayGpio.InputPin | undefined>;
+  protected gpioPromise: Promise<ArrayGpio.InputPin | undefined>;
+  protected gpio: ArrayGpio.InputPin | undefined;
 
   protected resistor: Resistor = Resistor.NoPull;
 
   constructor(pin: number) {
     super(pin);
-    this.gpio = this.initGpio(this.pin);
+    this.gpioPromise = this.initGpio(this.pin);
 
     this.handleStateConfirmed((edge, state) => {
       MightyGpio.events.emit("state-watch", this.pin, edge, state);
@@ -409,8 +417,13 @@ class InputPin extends Pin {
   public unwatch() {
     this.unhandleStateConfirmed();
 
+    if (this.gpio) {
+      this.gpio?.unwatch();
+      return;
+    }
+
     (async () => {
-      const hwPin = await this.gpio;
+      const hwPin = await this.gpioPromise;
       hwPin?.unwatch();
     })();
   }
@@ -424,8 +437,13 @@ class InputPin extends Pin {
       this.resistor = Resistor.PullDown;
     }
 
+    if (this.gpio) {
+      this.gpio?.setR(value);
+      return;
+    }
+
     (async () => {
-      const hwPin = await this.gpio;
+      const hwPin = await this.gpioPromise;
       hwPin?.setR(value);
     })();
   }
@@ -463,6 +481,8 @@ class InputPin extends Pin {
     }
 
     const hwPin = <ArrayGpio.InputPin>await Pin.getGpioPin(pin, PinMode.In);
+
+    this.gpio = hwPin;
 
     // Reading current hardware state as default
     const currentState = !!hwPin?.state;
@@ -516,11 +536,12 @@ class InputPin extends Pin {
 class OutputPin extends Pin {
   protected readonly mode = PinMode.Out;
 
-  protected gpio: Promise<ArrayGpio.OutputPin | undefined>;
+  protected gpioPromise: Promise<ArrayGpio.OutputPin | undefined>;
+  protected gpio: ArrayGpio.OutputPin | undefined;
 
   constructor(pin: number) {
     super(pin);
-    this.gpio = this.initGpio(this.pin);
+    this.gpioPromise = this.initGpio(this.pin);
 
     this.handleStateReceived(async (state, mode, resistor) => {
       const prevState = this.state;
@@ -545,7 +566,7 @@ class OutputPin extends Pin {
 
       this.invokeStateConfirmed(targetEdge, state);
 
-      const gpio = await this.gpio;
+      const gpio = await this.gpioPromise;
       gpio?.write(state);
     });
   }
@@ -576,9 +597,7 @@ class OutputPin extends Pin {
   ) {
     const { t: delay, callback } = this.parseOnOffArgs(...args);
 
-    const dispatcher = async () => {
-      const hwPin = await this.gpio;
-
+    const dispatcher = (hwPin: ArrayGpio.OutputPin | undefined) => {
       const prevState = this.state;
       this.state = state;
 
@@ -597,7 +616,15 @@ class OutputPin extends Pin {
     };
 
     if (!delay) {
-      dispatcher();
+      if (this.gpio) {
+        dispatcher(this.gpio);
+        return;
+      }
+
+      return this.gpioPromise
+        .then((gpio) => {
+          dispatcher(gpio);
+        });
     } else {
       setTimeout(dispatcher, delay);
     }
@@ -629,6 +656,8 @@ class OutputPin extends Pin {
     }
 
     const hwPin = <ArrayGpio.OutputPin>await Pin.getGpioPin(pin, PinMode.Out);
+
+    this.gpio = hwPin;
 
     // Reading current hardware state as default
     this.state = !!hwPin?.state;

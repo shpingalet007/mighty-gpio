@@ -302,6 +302,37 @@ describe("Input methods", () => {
 
       return checkWatcher().then(() => in20.close());
     });
+
+    it("Unwatch completely", async () => {
+      let in20 = MightyGpio.setInput(20);
+
+      let marker1 = false;
+      let marker2 = false;
+
+      in20.watch(1, () => {
+        marker1 = true;
+      });
+
+      in20.close();
+
+      in20 = MightyGpio.setInput(20);
+
+      in20.watch(1, () => {
+        marker2 = true;
+      });
+
+      setPin(20, true, PinMode.In);
+
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          expect(marker1).to.equal(false);
+          expect(marker2).to.equal(true);
+
+          in20.close();
+          resolve();
+        }, 300);
+      })
+    });
   });
 });
 

@@ -416,6 +416,8 @@ class InputPin extends Pin {
 
   public unwatch() {
     this.unhandleStateConfirmed();
+    MightyGpio.events.removeAllListeners(`state-watch[${this.pin}]`);
+
 
     if (this.gpio) {
       this.gpio?.unwatch();
@@ -426,6 +428,11 @@ class InputPin extends Pin {
       const hwPin = await this.gpioPromise;
       hwPin?.unwatch();
     })();
+  }
+
+  public close() {
+    super.close();
+    this.unwatch();
   }
 
   public setR(value?: ResistorType) {

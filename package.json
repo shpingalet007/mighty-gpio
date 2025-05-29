@@ -8,6 +8,8 @@
   "scripts": {
     "build:dev": "ncc build src/main.ts -o dist --source-map",
     "build:prod": "ncc build src/main.ts -m -o dist",
+    "pack:dev": "npm run build:dev && npm pack",
+    "pack:prod": "npm run build:prod && npm pack",
     "start:socket": "ts-node tests/utils/socket.ts",
     "start:socket:debug": "node --inspect-brk --enable-source-maps -r ts-node/register tests/utils/socket.ts",
     "lint": "prettier --write '{src,tests,types}/**/*.ts'",

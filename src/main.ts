@@ -512,6 +512,8 @@ class InputPin extends Pin {
           state = !state;
         }
 
+        this.state = state;
+
         if (state === prevState) return;
 
         const isLowToHigh = state === true && prevState === false;

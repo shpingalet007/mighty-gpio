@@ -1,176 +1,99 @@
-#machine {
-    display: inline-flex;
-    flex-direction: column;
-    background: linear-gradient(0deg, #000000 0%, #1c1c1c 100%);
-    border-radius: 50px;
-    border: 6px solid #0f9cb9;
+body {
+    background: #393939;
+    color: #fff;
 }
 
-#panel {
-    display: inline-flex;
-    flex-direction: column;
-    padding: 20px;
-}
-
-#panel .control {
-    display: inline-flex;
-    flex-direction: row;
-    align-items: center;
-}
-
-#panel label {
-    opacity: 0.8;
-    color: white;
-    font-size: 5pt;
-    font-weight: bold;
-    letter-spacing: 2pt;
-    text-transform: uppercase;
-    font-family: "Droid Sans", "Helvetica Neue", sans-serif;
-    margin-left: 10px;
-}
-
-#joints {
-    display: inline-flex;
-    flex-direction: row;
-    padding: 50px;
-}
-
-.joint {
+#container {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    flex-wrap: wrap;
+    height: 300px;
 }
 
-#panel .button,
-.joint .button {
+.pin {
+    position: relative;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 50px;
-    height: 50px;
-    margin: 10px;
+    width: 30px;
+    height: 30px;
+    margin-bottom: 8px;
     box-sizing: border-box;
-    border-radius: 10000%;
-    background: conic-gradient(from 48deg, #c1c1c1, #373737, #874e2d, #e3e3e3, #373737, #8d7e76, #c1c1c1);
-    box-shadow: 0 0 0 5px #101010, 0 0 0 7px #00000045;
-    cursor: pointer;
+    background-color: #000000;
+    border-radius: 4px;
 }
 
-#panel .button.small {
-    box-shadow: none;
-    margin: 5px;
-}
-
-#panel .button.small {
-    width: 20px;
-    height: 20px;
-}
-
-#panel .button.small::before,
-.joint .button::before {
+.pin::before {
     content: "";
-    width: 40px;
-    height: 40px;
-    border-radius: 10000%;
-    box-sizing: border-box;
-    border: 5px solid #4f704f;
-    background: transparent;
-}
-
-#panel .button.red::before,
-.joint .button.red::before {
-    border: 5px solid #843838;
-}
-
-#panel .button.blue::before,
-.joint .button.blue::before {
-    border: 5px solid #386784;
-}
-
-#panel .button.small::after,
-.joint .button::after {
     position: absolute;
-    content: '';
-    width: 40px;
-    height: 40px;
-    border-radius: 10000%;
-    box-shadow: inset 0 0 3px 1px #00000060;
+    display: block;
+    margin: 2px;
+    width: 26px;
+    height: 26px;
+    background-color: #989898;
+    border-radius: 2px;
 }
 
-#panel .button.small::before,
-#panel .button.small::after {
+.pin::after {
+    content: "";
+    z-index: 1;
+    position: absolute;
+    top: 0;
+    display: block;
+    margin: 4px;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #232323;
+    box-shadow:
+        19px 0 0 0 #232323,
+        0 19px 0 0 #232323,
+        19px 19px 0 0 #232323;
+}
+
+.pin label {
+    align-self: anchor-center;
+    position: absolute;
+    margin-left: 30px;
+    padding-left: 10px;
+    width: 300px;
+    line-height: 100%;
+    font-family: Arial;
+}
+
+.pin label::after {
+    content: " (LOW)";
+    color: #c53535;
+}
+
+.pin.out-on label::after {
+    content: " (HIGH OUT)";
+    color: #35c535;
+}
+
+.pin.in-on label::after {
+    content: " (HIGH IN)";
+    color: #35c535;
+}
+
+.pin button {
+    position: absolute;
+    display: block;
+    justify-self: anchor-center;
+    align-self: anchor-center;
     width: 15px;
     height: 15px;
-    border-width: 2px;
+    border-radius: 50%;
+    border: 1px solid #790707;
+    background: #ae2222;
 }
 
-#panel .button.in-on::after,
-#panel .button:active::after,
-.joint .button.in-on::after,
-.joint .button:active::after {
-    background-color: #00000050;
-    box-shadow: inset 0 0 3px 1px #00000060, inset 0 0 3px 2px #00000060;
+.pin.in-on button {
+    transform: scale(0.9);
 }
 
-#panel .button.in-on::before,
-#panel .button:active::before,
-.joint .button.in-on::before,
-.joint .button:active::before {
-    transform: scale(94%);
-}
-
-.baseled.blink .button::before,
-.button.blink::before {
-    animation: pulse 1s infinite;
-}
-
-.baseled.out-on .button::before,
-.button.out-on::before {
-    border-color: #56cb56;
-}
-
-.button.out-on.red::before {
-    border-color: #ff3500 !important;
-}
-
-.button.out-on.blue::before {
-    border-color: #4fdfff !important;
-}
-
-@keyframes pulse {
-    0%,
-    49.999999% {
-        border-color: #4f704f;
-    }
-    50%,
-    100% {
-        border-color: #56cb56;
-    }
-}
-
-.dispenser {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    margin-bottom: 20px;
-    box-sizing: border-box;
-    border-radius: 10000%;
-    background-color: lightgray;
-    border: 2px solid #000;
-    box-shadow: 0 0 0 1px #ffffff30;
-}
-
-.dispenser::before {
-    content: '';
-    width: 2px;
-    height: 2px;
-    border-radius: 10000%;
-    background-color: #000;
-}
-
-.dispenser.out-on {
-    box-shadow: 0 0 10px 10px #ffffff66;
+.pin.out-on button {
+    border: 1px solid #790707;
+    background: #ff1313;
+    box-shadow:
+        0 0 0 1px #ff000080,
+        0 0 0 2px #ff000040;
 }

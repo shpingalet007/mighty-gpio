@@ -7,45 +7,29 @@
     <title>Perfumatic Test Utility</title>
 </head>
 <body>
-    <div id="machine">
-        <div id="panel">
-            <div class="control">
-                <div class="button red small" in="pu:23" out="25"></div>
-                <label>Open/close detector</label>
-            </div>
-            <div class="control">
-                <div class="button blue small" in="pu:22" out="31"></div>
-                <label>Coin acceptor</label>
-            </div>
-            <div class="control">
-                <div class="button blue small" in="pu:4"></div>
-                <label>Bill acceptor</label>
-            </div>
-        </div>
-        <div id="joints">
-            <div class="joint">
-                <div class="dispenser" out="13"></div>
-                <div class="button led" in="pu:6" out="24" t="200"></div>
-            </div>
-            <div class="joint">
-                <div class="dispenser" out="19"></div>
-                <div class="button led" in="pu:21" out="24" t="200"></div>
-            </div>
-            <div class="joint">
-                <div class="dispenser" out="26"></div>
-                <div class="button led" in="pu:5" out="24" t="200"></div>
-            </div>
-            <div class="joint">
-                <div class="dispenser" out="27"></div>
-                <div class="button led" in="pu:16" out="24" t="200"></div>
-            </div>
-            <div class="joint">
-                <div class="dispenser" out="12"></div>
-                <div class="button led" in="pu:20" out="24" t="200"></div>
-            </div>
-        </div>
-    </div>
+    <div id="container"></div>
 </body>
+
+<script>
+    const container = document.getElementById('container');
+
+    for (let i = 2; i <= 27; i++) {
+        const div = document.createElement('div');
+        div.className = 'pin';
+        div.setAttribute('in', i);
+        div.setAttribute('out', i);
+
+        const label = document.createElement('label');
+        label.textContent = `Pin ${i}`;
+
+        const button = document.createElement('button');
+
+        div.appendChild(label);
+        div.appendChild(button);
+        container.appendChild(div);
+    }
+</script>
+
 <script src="socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
 <script src="script.js"></script>
 </html>

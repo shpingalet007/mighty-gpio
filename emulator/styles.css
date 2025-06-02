@@ -21,6 +21,13 @@ body {
     border-radius: 4px;
 }
 
+.pin[disabled] {
+    filter:
+        grayscale(100%)
+        contrast(0.2)
+        brightness(0.6);
+}
+
 .pin::before {
     content: "";
     position: absolute;
@@ -32,7 +39,7 @@ body {
     border-radius: 2px;
 }
 
-.pin::after {
+.pin[in]::after {
     content: "";
     z-index: 1;
     position: absolute;
@@ -59,7 +66,7 @@ body {
     font-family: Arial;
 }
 
-.pin label::after {
+/* .pin label::after {
     content: " (LOW)";
     color: #c53535;
 }
@@ -72,9 +79,9 @@ body {
 .pin.in-on label::after {
     content: " (HIGH IN)";
     color: #35c535;
-}
+} */
 
-.pin button {
+.pin[in] button {
     position: absolute;
     display: block;
     justify-self: anchor-center;
@@ -82,15 +89,33 @@ body {
     width: 15px;
     height: 15px;
     border-radius: 50%;
-    border: 1px solid #790707;
-    background: #ae2222;
+    border: 1px solid #000000;
+    background: #1c1c1c;
 }
 
-.pin.in-on button {
+.pin[out]:not([in]) button {
+    position: absolute;
+    display: block;
+    justify-self: anchor-center;
+    align-self: anchor-center;
+    width: 20px;
+    height: 20px;
+    border-radius: 2px;
+    border: 1px solid #790707;
+    background: #791e1e;
+}
+
+.pin[out] button,
+.pin[in][out] button {
+    border: 1px solid #790707;
+    background: #791e1e;
+}
+
+.pin[in].in-on button {
     transform: scale(0.9);
 }
 
-.pin.out-on button {
+.pin[out].out-on button {
     border: 1px solid #790707;
     background: #ff1313;
     box-shadow:

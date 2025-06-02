@@ -10,13 +10,20 @@ class MachineEmulator extends EventTarget {
     getAllInputs = () => [...document.querySelectorAll("[in]")]
     getInputs = (pin, res) => [...document.querySelectorAll(`[in="${pin}"],[in="${res}:${pin}"]`)]
 
+    getPins = (pin) => [...this.getAllInputs(pin), ...this.getAllOutputs(pin)];
+
     initListeners() {
         const inputs = this.getAllInputs()
 
         inputs.forEach((input) => {
             input.addEventListener("mousedown", () => {
-                if (input.blocked) return
-                input.blocked = true
+                //const isBlocked = input.blocked;
+                const isDisabled = input.hasAttribute("disabled");
+                const isInput = input.hasAttribute("in");
+
+                if (isDisabled || !isInput) return;
+
+                //input.blocked = true;
 
                 this.setInState(input, 1);
 
@@ -40,7 +47,12 @@ class MachineEmulator extends EventTarget {
 
             input.addEventListener("mouseup", () => {
                 const sendEvent = () => {
-                    input.blocked = false;
+                    //const isBlocked = input.blocked;
+                    const isDisabled = input.hasAttribute("disabled");
+
+                    if (isDisabled) return;
+
+                    //input.blocked = true;
 
                     const pinParams = input.getAttribute("in");
 
@@ -73,7 +85,7 @@ class MachineEmulator extends EventTarget {
             })
         })
 
-        this.addEventListener("out-state", (event) => {
+        this.addEventListener("out-state-watcher", (event) => {
             console.log(event);
 
             /*let strResistor;
@@ -84,11 +96,17 @@ class MachineEmulator extends EventTarget {
                 case -1: strResistor = "pn"; break;
             }*/
 
-            const targetOutputs = this.getOutputs(event.detail.pin)
+            const targetOutputs = this.getOutputs(event.detail.pin);
 
             targetOutputs.forEach((output) => {
-                this.setOutState(output, event.detail.state)
-            })
+                this.setOutState(output, event.detail.state);
+
+                if (output.getAttribute("in") == event.detail.pin) {
+                    this.removeIn(output);
+                }
+
+                this.enable(output);
+            });
         })
 
         this.addEventListener("in-state-watcher", (event) => {
@@ -102,11 +120,17 @@ class MachineEmulator extends EventTarget {
                 case "NoPull": resistorString = "pn"; break;
             }
 
-            const targetInputs = this.getInputs(event.detail.pin, resistorString)
+            const targetInputs = this.getInputs(event.detail.pin, resistorString);
 
-            targetInputs.forEach((inputs) => {
-                this.setInState(inputs, event.detail.state)
-            })
+            targetInputs.forEach((input) => {
+                this.setInState(input, event.detail.state);
+
+                if (input.getAttribute("out") == event.detail.pin) {
+                    this.removeOut(input);
+                }
+
+                this.enable(input);
+            });
         })
     }
 
@@ -126,6 +150,22 @@ class MachineEmulator extends EventTarget {
         }
     }
 
+    enable(element) {
+        element.removeAttribute("disabled");
+    }
+
+    disable(element) {
+        element.setAttribute("disabled", "");
+    }
+
+    removeOut(element) {
+        element.removeAttribute("out");
+    }
+
+    removeIn(element) {
+        element.removeAttribute("in");
+    }
+
     static createInputEvent(pin, state) {
         return new CustomEvent("in-state", {
             detail: { pin, state },
@@ -139,7 +179,7 @@ class MachineEmulator extends EventTarget {
     }
 
     static createOutputEvent(pin, state) {
-        return new CustomEvent("out-state", {
+        return new CustomEvent("out-state-watcher", {
             detail: { pin, state },
         })
     }
@@ -162,6 +202,10 @@ class MachineEmulator extends EventTarget {
     setInLow(pin, resistor) {
         const event = MachineEmulator.createInputWatcherEvent(pin, resistor, 0);
         this.dispatchEvent(event);
+    }
+
+    setDisabled(pin) {
+        this.getPins(pin).forEach((elem) => this.disable(elem));
     }
 
     onInState(callback) {
@@ -191,7 +235,8 @@ class MachineEmulator extends EventTarget {
 const emu = new MachineEmulator()
 
 //const socket = new WebSocket("ws://192.168.7.237:8080/gpio");
-const socket = io("http://192.168.7.107:4000");
+//const socket = io("http://192.168.7.107:4000");
+const socket = io("http://127.0.0.1:4000");
 //const socket = io("http://192.168.7.116:4000");
 
 socket.on('connect', () => {
@@ -202,6 +247,13 @@ socket.on('connect', () => {
     });
 
     socket.on("pin:send", (pin, state, mode, resistor, callback) => {
+        console.log(`Pin ${pin}: ${state} ${mode} ${resistor}`);
+
+        if (!mode) {
+            emu.setDisabled(pin);
+            return;
+        }
+
         if (mode === "in") {
             if (state === true) {
                 emu.setInHigh(pin, resistor);

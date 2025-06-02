@@ -203,7 +203,8 @@ class Pin {
   public isMighty: boolean = true;
 
   protected gpioPromise: Promise<
-  (ArrayGpio.OutputPin | ArrayGpio.InputPin) | undefined> = Promise.resolve(undefined);
+    (ArrayGpio.OutputPin | ArrayGpio.InputPin) | undefined
+  > = Promise.resolve(undefined);
 
   protected gpio: (ArrayGpio.OutputPin | ArrayGpio.InputPin) | undefined;
 
@@ -238,9 +239,13 @@ class Pin {
     this.unhandleStateConfirmed();
     this.unlistenInform();
 
+    this.mode = undefined;
+    this.resistor = Resistor.NoPull;
+
+    this.setObserverState(false);
+
     if (this.gpio) {
       this.gpio?.close();
-      this.setObserverState(false);
       return;
     }
 
@@ -248,8 +253,6 @@ class Pin {
       const hwPin = await this.gpioPromise;
       hwPin?.close();
     })();
-
-    this.setObserverState(false);
   }
 
   public read(callback?: StateCallback): boolean {
@@ -338,6 +341,11 @@ class InputPin extends Pin {
     super(pin);
     this.gpioPromise = this.initGpio(this.pin);
 
+    this.setObserverState(this.state);
+
+    // @ts-ignore
+    console.log(`[MIGHTYGPIO] Input ${this.id}`);
+
     this.handleStateConfirmed((edge, state) => {
       MightyGpio.events.emit("state-watch", this.pin, edge, state);
       MightyGpio.events.emit(`state-watch[${this.pin}]`, edge, state);
@@ -346,6 +354,8 @@ class InputPin extends Pin {
     });
 
     this.handleStateReceived(async (state, mode, resistor) => {
+      if (mode !== this.mode) return;
+
       const prevState = this.state;
 
       const isResistorCorrect = Resistor[resistor] !== this.resistor;
@@ -396,11 +406,17 @@ class InputPin extends Pin {
       s: scanRate,
     } = this.parseWatchArgs(...args);
 
+    // @ts-ignore
+    console.log(`[MIGHTYGPIO] Watch ${this.id}`);
+
     let lastReported = 0;
 
     MightyGpio.events.on(
       `state-watch[${this.pin}]`,
       (edge: Edge, state: boolean) => {
+        // @ts-ignore
+        console.log(`[MIGHTYGPIO] Signal ${this.id}`);
+
         const dateNow = Date.now();
         const isRateReached = lastReported + scanRate <= dateNow;
         const isTargetEdge =
@@ -418,6 +434,8 @@ class InputPin extends Pin {
     this.unhandleStateConfirmed();
     MightyGpio.events.removeAllListeners(`state-watch[${this.pin}]`);
 
+    // @ts-ignore
+    console.log(`[MIGHTYGPIO] Unwatch ${this.id}`);
 
     if (this.gpio) {
       this.gpio?.unwatch();
@@ -552,7 +570,11 @@ class OutputPin extends Pin {
     super(pin);
     this.gpioPromise = this.initGpio(this.pin);
 
-    this.handleStateReceived(async (state, mode, resistor) => {
+    this.setObserverState(this.state);
+
+    this.handleStateReceived(async (state, mode) => {
+      if (mode !== this.mode) return;
+
       const prevState = this.state;
       this.state = state;
 
@@ -630,10 +652,9 @@ class OutputPin extends Pin {
         return;
       }
 
-      return this.gpioPromise
-        .then((gpio) => {
-          dispatcher(gpio);
-        });
+      return this.gpioPromise.then((gpio) => {
+        dispatcher(gpio);
+      });
     } else {
       setTimeout(dispatcher, delay);
     }

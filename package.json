@@ -5,11 +5,16 @@
   "description": "",
   "main": "dist/index.js",
   "types": "types/mighty-gpio.d.ts",
+  "files": [
+    "dist",
+    "types"
+  ],
   "scripts": {
     "build:dev": "ncc build src/main.ts -o dist --source-map",
     "build:prod": "ncc build src/main.ts -m -o dist",
     "pack:dev": "npm run build:dev && npm pack",
     "pack:prod": "npm run build:prod && npm pack",
+    "pack:dev:install": "npm run pack:dev && npm r mighty-gpio && npm i mighty-gpio-1.0.0.tgz",
     "start:socket": "ts-node tests/utils/socket.ts",
     "start:socket:debug": "node --inspect-brk --enable-source-maps -r ts-node/register tests/utils/socket.ts",
     "lint": "prettier --write '{src,tests,types}/**/*.ts'",
@@ -18,6 +23,7 @@
   },
   "dependencies": {
     "@types/node": "^22.14.1",
+    "mighty-gpio": "file:mighty-gpio-1.0.0.tgz",
     "ts-node": "^10.9.2"
   },
   "devDependencies": {

@@ -15,9 +15,7 @@ declare module "mighty-gpio" {
   export const forceEmulation: () => boolean;
   export const isBroadcomScheme: () => boolean;
 
-  export const ready: (
-    pins: InputPin | OutputPin | (InputPin | OutputPin)[],
-  ) => Promise<boolean>;
+  export const ready: (...pins: Pin[]) => Promise<boolean>;
 
   interface Pin {
     state: boolean;
@@ -38,6 +36,8 @@ declare module "mighty-gpio" {
     unwatch(): void;
 
     setR(value?: Resistor): void;
+
+    ready(): InputPin;
   }
 
   interface OutputPin extends Pin {
@@ -50,6 +50,8 @@ declare module "mighty-gpio" {
     write(bit: BitState, callback?: StateCallback): void;
 
     pulse(pw: number, callback?: Callback): void;
+
+    ready(): OutputPin;
   }
 
   type Option = {
@@ -72,26 +74,26 @@ declare module "mighty-gpio" {
   type ChipSelect = 0 | 1 | 2 | 3;
   type PinState = 0 | 1;
 
-  function setInverted(): void;
-  function setObservers(observers: ObserversPack): void;
-  function useBroadcomScheme(): void;
+  export function setInverted(): void;
+  export function setObservers(observers: ObserversPack): void;
+  export function useBroadcomScheme(): void;
 
-  function setInput(pin: number): InputPin;
-  function setInput(...pin: number[]): InputPin[];
-  function setInput(option: Option): InputPin[];
-  "in" = setInput;
+  export function setInput(pin: number): InputPin;
+  export function setInput(...pin: number[]): InputPin[];
+  export function setInput(option: Option): InputPin[];
+  export { setInput as in };
 
-  function setOutput(pin: number): OutputPin;
-  function setOutput(...pin: number[]): OutputPin[];
-  function setOutput(option: Option): OutputPin[];
-  out = setOutput;
+  export function setOutput(pin: number): OutputPin;
+  export function setOutput(...pin: number[]): OutputPin[];
+  export function setOutput(option: Option): OutputPin[];
+  export { setOutput as out };
 
-  function watchInput(callback: Callback): void;
-  function watchInput(callback: Callback, s?: number): void;
-  function watchInput(edge: Edge, callback: Callback): void;
-  function watchInput(edge: Edge, callback: Callback, s?: number): void;
+  export function watchInput(callback: Callback): void;
+  export function watchInput(callback: Callback, s?: number): void;
+  export function watchInput(edge: Edge, callback: Callback): void;
+  export function watchInput(edge: Edge, callback: Callback, s?: number): void;
 
-  function unwatchInput(): void;
+  export function unwatchInput(): void;
 
   interface ComProtocol {
     setClockFreq(div: number): void;

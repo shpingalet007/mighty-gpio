@@ -10,7 +10,8 @@ class MachineEmulator extends EventTarget {
     getAllInputs = () => [...document.querySelectorAll("[in]")]
     getInputs = (pin, res) => [...document.querySelectorAll(`[in="${pin}"],[in="${res}:${pin}"]`)]
 
-    getPins = (pin) => [...this.getAllInputs(pin), ...this.getAllOutputs(pin)];
+    getAllPins = () => [...this.getAllInputs(), ...this.getAllOutputs()];
+    getPins = (pin) => [...this.getInputs(pin), ...this.getOutputs(pin)];
 
     initListeners() {
         const inputs = this.getAllInputs()
@@ -208,6 +209,10 @@ class MachineEmulator extends EventTarget {
         this.getPins(pin).forEach((elem) => this.disable(elem));
     }
 
+    disableAll() {
+        this.getAllPins().forEach((elem) => this.disable(elem));
+    }
+
     onInState(callback) {
         // TODO: Incoming pin state is echoed back due to events issue. PROCEED
 
@@ -238,6 +243,10 @@ const emu = new MachineEmulator()
 //const socket = io("http://192.168.7.107:4000");
 const socket = io("http://127.0.0.1:4000");
 //const socket = io("http://192.168.7.116:4000");
+
+socket.on('disconnect', () => {
+    emu.disableAll();
+});
 
 socket.on('connect', () => {
     emu.onInState((pin, state, mode, resistor) => {

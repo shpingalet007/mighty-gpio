@@ -38,29 +38,29 @@ describe("Mighty parameters", () => {
   it("Invert GPIO pin states", () => {
     MightyGpio.setInverted();
 
-    expect(MightyGpio.inverted).to.equal(true);
+    expect(MightyGpio._inverted).to.equal(true);
 
-    MightyGpio.inverted = false;
+    MightyGpio._inverted = false;
   });
 
   it("Change GPIO mapping scheme", () => {
-    expect(MightyGpio.gpioScheme).to.equal(GpioScheme.Physical);
+    expect(MightyGpio._gpioScheme).to.equal(GpioScheme.Physical);
     expect(MightyGpio.isBroadcomScheme()).to.equal(false);
 
     MightyGpio.useBroadcomScheme();
 
-    expect(MightyGpio.gpioScheme).to.equal(GpioScheme.Broadcom);
+    expect(MightyGpio._gpioScheme).to.equal(GpioScheme.Broadcom);
     expect(MightyGpio.isBroadcomScheme()).to.equal(true);
 
-    MightyGpio.gpioScheme = GpioScheme.Physical;
+    MightyGpio._gpioScheme = GpioScheme.Physical;
   });
 
   it("Force emulation mode", () => {
     MightyGpio.forceEmulation();
 
-    expect(MightyGpio.mode).to.equal(Mode.Emulated);
+    expect(MightyGpio._mode).to.equal(Mode.Emulated);
 
-    MightyGpio.mode = Mode.Real;
+    MightyGpio._mode = Mode.Real;
   });
 });
 
@@ -549,5 +549,36 @@ describe("Output methods", () => {
         }, 1);
       });
     });
+  });
+});
+
+describe("Module mighty-gpio API", () => {
+  it("Check exports", () => {
+    expect(MightyGpio).to.have.property("setInverted");
+    expect(MightyGpio).to.have.property("useBroadcomScheme");
+    expect(MightyGpio).to.have.property("isBroadcomScheme");
+    expect(MightyGpio).to.have.property("forceEmulation");
+
+    expect(MightyGpio).to.have.property("supportsPeripherals");
+    expect(MightyGpio).to.have.property("supportsPWM");
+    expect(MightyGpio).to.have.property("supportsI2C");
+    expect(MightyGpio).to.have.property("supportsSPI");
+  });
+});
+
+describe("Module array-gpio API", () => {
+  it("Check exports for GPIO methods", () => {
+    expect(MightyGpio).to.have.property("setInput");
+    expect(MightyGpio).to.have.property("setOutput");
+    expect(MightyGpio).to.have.property("in");
+    expect(MightyGpio).to.have.property("out");
+    expect(MightyGpio).to.have.property("watchInput");
+    expect(MightyGpio).to.have.property("unwatchInput");
+  });
+
+  it("Check exports for peripherals methods", async () => {
+    expect(MightyGpio).to.have.property("startPWM");
+    expect(MightyGpio).to.have.property("startI2C");
+    expect(MightyGpio).to.have.property("startSPI");
   });
 });

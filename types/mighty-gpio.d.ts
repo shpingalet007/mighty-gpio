@@ -3,18 +3,23 @@
 //type PinMode = "out" | "in";
 //type GpioScheme = "physical" | "broadcom";
 
-import { GpioScheme } from "../src/types/enums";
+import { GpioScheme, Mode } from "../src/types/enums";
 
 declare module "mighty-gpio" {
-  export let inverted: boolean;
-  export let gpioScheme: GpioScheme;
-  export let mode: Mode;
+  /* For internal use only */
+  export let _mode: Mode;
+  export let _inverted: boolean;
+  export let _gpioScheme: GpioScheme;
 
+  /* Mighty GPIO methods */
   export const setInverted: () => boolean;
   export const useBroadcomScheme: () => boolean;
   export const forceEmulation: () => boolean;
   export const isBroadcomScheme: () => boolean;
-
+  export const supportsPeripherals: () => boolean;
+  export const supportsPWM: () => boolean;
+  export const supportsI2C: () => boolean;
+  export const supportsSPI: () => boolean;
   export const ready: (...pins: Pin[]) => Promise<boolean>;
 
   interface Pin {
@@ -37,6 +42,7 @@ declare module "mighty-gpio" {
 
     setR(value?: Resistor): void;
 
+    /* For internal use only */
     ready(): InputPin;
   }
 
@@ -51,6 +57,7 @@ declare module "mighty-gpio" {
 
     pulse(pw: number, callback?: Callback): void;
 
+    /* For internal use only */
     ready(): OutputPin;
   }
 
@@ -104,11 +111,13 @@ declare module "mighty-gpio" {
     read(rbuf: Buffer, n: number): void;
   }
 
-  /**
-   * PWM
-   */
-  function startPWM(pin: number): PWM;
-  function startPWM(pin: number, freq: Frequency, t: number, pw: number): PWM;
+  export function startPWM(pin: number): PWM;
+  export function startPWM(
+    pin: number,
+    freq: Frequency,
+    t: number,
+    pw: number,
+  ): PWM;
 
   interface PWM extends ComProtocol {
     setRange(range: number): void;
@@ -119,10 +128,7 @@ declare module "mighty-gpio" {
     close(): void;
   }
 
-  /**
-   * I2C
-   */
-  function startI2C(): I2C;
+  export function startI2C(): I2C;
 
   interface I2C extends ComProtocolIO {
     begin(): void;
@@ -135,7 +141,7 @@ declare module "mighty-gpio" {
   /**
    * SPI
    */
-  function startSPI(): SPI;
+  export function startSPI(): SPI;
 
   interface SPI extends ComProtocolIO {
     chipSelect(cs: ChipSelect): void;

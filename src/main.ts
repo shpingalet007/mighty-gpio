@@ -17,45 +17,54 @@ export { ObserverHandler, ObserversPack } from "./types/types";
 type BitState = 1 | true | 0 | false;
 
 export default class MightyGpio {
-  public static mode = Mode.Real;
-  public static inverted = false;
-  public static gpioScheme = GpioScheme.Physical;
+  static _mode = Mode.Real;
+  static _inverted = false;
 
-  public static events = new AckEventEmitter();
-  public static gpioEvents = new EventEmitter();
+  static _events = new AckEventEmitter();
+  static _gpioEvents = new EventEmitter();
+
+  static _gpioScheme = GpioScheme.Physical;
 
   public static arrayGpio: Promise<typeof ArrayGpio | null>;
 
-  private static _observers: ObserversPack = {};
+  private static observers: ObserversPack = {};
 
-  public static forceEmulation = () => (this.mode = Mode.Emulated);
+  public static forceEmulation = () => (MightyGpio._mode = Mode.Emulated);
 
   public static setInverted = () => {
-    if (this.mode === Mode.Real) {
-      MightyGpio.inverted = true;
+    if (MightyGpio._mode === Mode.Real) {
+      MightyGpio._inverted = true;
     }
   };
 
   public static useBroadcomScheme = () => {
-    this.gpioScheme = GpioScheme.Broadcom;
+    MightyGpio._gpioScheme = GpioScheme.Broadcom;
   };
 
   public static isBroadcomScheme = () =>
-    this.gpioScheme === GpioScheme.Broadcom;
+    MightyGpio._gpioScheme === GpioScheme.Broadcom;
+
+  public static supportsPeripherals = () => MightyGpio._mode === Mode.Real;
+
+  public static supportsPWM = () => MightyGpio._mode === Mode.Real;
+
+  public static supportsI2C = () => MightyGpio._mode === Mode.Real;
+
+  public static supportsSPI = () => MightyGpio._mode === Mode.Real;
 
   public static setObservers(observers: ObserversPack) {
-    MightyGpio._observers = observers;
+    MightyGpio.observers = observers;
 
-    MightyGpio.events.removeAllListeners("state-assigned");
+    MightyGpio._events.removeAllListeners("state-assigned");
 
-    MightyGpio._observers.receive?.(async (pin, state, mode, resistor) => {
+    MightyGpio.observers.receive?.(async (pin, state, mode, resistor) => {
       /**
        * Input and Output classes replicate this functionality differently.
        * For this reason here we would only send event that there is a pin
        * state change registered.
        */
 
-      return await MightyGpio.events.invoke(
+      return await MightyGpio._events.invoke(
         `state-received[${pin}]`,
         state,
         mode,
@@ -63,26 +72,26 @@ export default class MightyGpio {
       );
     });
 
-    MightyGpio.events.on(
+    MightyGpio._events.on(
       "state-assigned",
       (pin: number, state: boolean, mode: PinMode, resistor?: Resistor) => {
-        MightyGpio._observers.send?.(pin, state, mode, resistor);
+        MightyGpio.observers.send?.(pin, state, mode, resistor);
       },
     );
 
-    MightyGpio.gpioEvents.emit("inform-state");
+    MightyGpio._gpioEvents.emit("inform-state");
   }
 
   // Public methods
 
   public static setInput = (...param: [number | ArrayGpio.Option] | number[]) =>
     <InputPin>MightyGpio.initPin(param, InputPin);
-  public static in = this.setInput;
+  public static in = MightyGpio.setInput;
 
   public static setOutput = (
     ...param: [number | ArrayGpio.Option] | number[]
   ) => <OutputPin>MightyGpio.initPin(param, OutputPin);
-  public static out = this.setOutput;
+  public static out = MightyGpio.setOutput;
 
   public static watchInput(
     ...args: [Callback | Edge, (number | Callback)?, number?]
@@ -96,7 +105,7 @@ export default class MightyGpio {
     // Assigning Infinity to resolve the first time even if set fast
     let lastReported = 0;
 
-    MightyGpio.events.on("state-watch", (edge: Edge) => {
+    MightyGpio._events.on("state-watch", (edge: Edge) => {
       const dateNow = Date.now();
       const isRateReached = lastReported + scanRate <= dateNow;
       const isTargetEdge =
@@ -110,7 +119,54 @@ export default class MightyGpio {
   }
 
   public static unwatchInput() {
-    MightyGpio.events.removeAllListeners("state-watch");
+    MightyGpio._events.removeAllListeners("state-watch");
+  }
+
+  public static async startPWM(
+    pin: number,
+    freq: ArrayGpio.Frequency,
+    t: number,
+    pw: number,
+  ) {
+    MightyGpio._importArrayGpio();
+
+    const arrayGpio = await MightyGpio.arrayGpio;
+
+    const pwm = arrayGpio?.startPWM(pin, freq, t, pw);
+
+    if (!pwm) {
+      throw Error("PWM isn't supported in emulation mode");
+    }
+
+    return pwm;
+  }
+
+  public static async startI2C() {
+    MightyGpio._importArrayGpio();
+
+    const arrayGpio = await MightyGpio.arrayGpio;
+
+    const i2c = arrayGpio?.startI2C();
+
+    if (!i2c) {
+      throw Error("I2C isn't supported in emulation mode");
+    }
+
+    return i2c;
+  }
+
+  public static async startSPI() {
+    MightyGpio._importArrayGpio();
+
+    const arrayGpio = await MightyGpio.arrayGpio;
+
+    const spi = arrayGpio?.startSPI();
+
+    if (!spi) {
+      throw Error("SPI isn't supported in emulation mode");
+    }
+
+    return spi;
   }
 
   public static async ready(...pins: (InputPin | OutputPin)[]) {
@@ -260,11 +316,11 @@ class Pin {
   }
 
   protected handleStateReceived(handler: StateModeResistorCallback): void {
-    MightyGpio.events.handle(`state-received[${this.pin}]`, handler);
+    MightyGpio._events.handle(`state-received[${this.pin}]`, handler);
   }
 
   protected unhandleStateReceived(): void {
-    MightyGpio.events.unhandle(`state-received[${this.pin}]`);
+    MightyGpio._events.unhandle(`state-received[${this.pin}]`);
   }
 
   private _informListener = () => {
@@ -272,27 +328,27 @@ class Pin {
   };
 
   protected listenInform(): void {
-    MightyGpio.gpioEvents.on("inform-state", this._informListener);
+    MightyGpio._gpioEvents.on("inform-state", this._informListener);
   }
 
   protected unlistenInform(): void {
-    MightyGpio.gpioEvents.off("inform-state", this._informListener);
+    MightyGpio._gpioEvents.off("inform-state", this._informListener);
   }
 
   protected invokeStateReceived(state: boolean) {
-    return MightyGpio.events.invoke(`state-received[${this.pin}]`, state);
+    return MightyGpio._events.invoke(`state-received[${this.pin}]`, state);
   }
 
   protected handleStateConfirmed(handler: StateEdgeCallback): void {
-    MightyGpio.events.handle(`state-confirmed[${this.pin}]`, handler);
+    MightyGpio._events.handle(`state-confirmed[${this.pin}]`, handler);
   }
 
   protected unhandleStateConfirmed(): void {
-    MightyGpio.events.unhandle(`state-confirmed[${this.pin}]`);
+    MightyGpio._events.unhandle(`state-confirmed[${this.pin}]`);
   }
 
   protected invokeStateConfirmed(edge: Edge, state: boolean) {
-    return MightyGpio.events
+    return MightyGpio._events
       .invoke(`state-confirmed[${this.pin}]`, edge, state)
       .catch((err) => {
         console.error(err);
@@ -300,7 +356,7 @@ class Pin {
   }
 
   protected setObserverState(state: boolean, resistor?: keyof typeof Resistor) {
-    MightyGpio.events.emit(
+    MightyGpio._events.emit(
       "state-assigned",
       this.pin,
       state,
@@ -342,8 +398,8 @@ class InputPin extends Pin {
     this.setObserverState(this.state);
 
     this.handleStateConfirmed((edge, state) => {
-      MightyGpio.events.emit("state-watch", this.pin, edge, state);
-      MightyGpio.events.emit(`state-watch[${this.pin}]`, edge, state);
+      MightyGpio._events.emit("state-watch", this.pin, edge, state);
+      MightyGpio._events.emit(`state-watch[${this.pin}]`, edge, state);
 
       return true;
     });
@@ -382,7 +438,7 @@ class InputPin extends Pin {
       }
 
       this.invokeStateConfirmed(targetEdge, state);
-      MightyGpio.events.emit("state-watch", this.pin, targetEdge, state);
+      MightyGpio._events.emit("state-watch", this.pin, targetEdge, state);
 
       /**
        * We can't assign InputPin real state so just setting
@@ -403,7 +459,7 @@ class InputPin extends Pin {
 
     let lastReported = 0;
 
-    MightyGpio.events.on(
+    MightyGpio._events.on(
       `state-watch[${this.pin}]`,
       (edge: Edge, state: boolean) => {
         const dateNow = Date.now();
@@ -421,7 +477,7 @@ class InputPin extends Pin {
 
   public unwatch() {
     this.unhandleStateConfirmed();
-    MightyGpio.events.removeAllListeners(`state-watch[${this.pin}]`);
+    MightyGpio._events.removeAllListeners(`state-watch[${this.pin}]`);
 
     if (this.gpio) {
       this.gpio?.unwatch();
@@ -485,9 +541,9 @@ class InputPin extends Pin {
   }
 
   protected async initGpio(pin: number) {
-    if (MightyGpio.mode === Mode.Emulated) return;
+    if (MightyGpio._mode === Mode.Emulated) return;
 
-    if (MightyGpio.gpioScheme === GpioScheme.Broadcom) {
+    if (MightyGpio._gpioScheme === GpioScheme.Broadcom) {
       pin = BroadcomScheme[pin as keyof typeof BroadcomScheme];
     }
 
@@ -512,7 +568,7 @@ class InputPin extends Pin {
     hwPin?.watch(
       Edge.Both,
       (state: boolean) => {
-        if (MightyGpio.inverted) {
+        if (MightyGpio._inverted) {
           state = !state;
         }
 
@@ -672,9 +728,9 @@ class OutputPin extends Pin {
   }
 
   protected async initGpio(pin: number) {
-    if (MightyGpio.mode === Mode.Emulated) return;
+    if (MightyGpio._mode === Mode.Emulated) return;
 
-    if (MightyGpio.gpioScheme === GpioScheme.Broadcom) {
+    if (MightyGpio._gpioScheme === GpioScheme.Broadcom) {
       pin = BroadcomScheme[pin as keyof typeof BroadcomScheme];
     }
 
@@ -690,7 +746,7 @@ class OutputPin extends Pin {
 }
 
 const maxPinsInUse = Object.values(BroadcomScheme).length;
-MightyGpio.gpioEvents.setMaxListeners(maxPinsInUse);
+MightyGpio._gpioEvents.setMaxListeners(maxPinsInUse);
 
 export const setInput = MightyGpio.setInput;
 export { setInput as in };
@@ -705,3 +761,7 @@ export const forceEmulation = MightyGpio.forceEmulation;
 export const useBroadcomScheme = MightyGpio.useBroadcomScheme;
 export const setObservers = MightyGpio.setObservers;
 export const ready = MightyGpio.ready;
+
+export const startPWM = MightyGpio.startPWM;
+export const startSPI = MightyGpio.startSPI;
+export const startI2C = MightyGpio.startI2C;

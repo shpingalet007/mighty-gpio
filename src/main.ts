@@ -46,11 +46,11 @@ export default class MightyGpio {
 
   public static supportsPeripherals = () => MightyGpio._mode === Mode.Real;
 
-  public static supportsPWM = () => MightyGpio._mode === Mode.Real;
+  public static supportsPWM = MightyGpio.supportsPeripherals;
 
-  public static supportsI2C = () => MightyGpio._mode === Mode.Real;
+  public static supportsI2C = MightyGpio.supportsPeripherals;
 
-  public static supportsSPI = () => MightyGpio._mode === Mode.Real;
+  public static supportsSPI = MightyGpio.supportsPeripherals;
 
   public static setObservers(observers: ObserversPack) {
     MightyGpio.observers = observers;

@@ -1,13 +1,15 @@
 import { Edge, PinMode, Resistor } from "./enums";
+import { PinState } from "array-gpio";
+export { PinState } from "array-gpio";
 
 export type StateModeResistorCallback = (
-  state: boolean,
+  state: PinState,
   mode: PinMode,
   resistor: keyof typeof Resistor,
 ) => void;
 
-export type StateCallback = (state: boolean) => void;
-export type StateEdgeCallback = (edge: Edge, state: boolean) => void;
+export type StateCallback = (state: PinState) => void;
+export type StateEdgeCallback = (edge: Edge, state: PinState) => void;
 export type Callback = () => void;
 
 export type ObserverHandler = (

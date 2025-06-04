@@ -1,6 +1,6 @@
 declare module "array-gpio" {
   interface Pin {
-    state: boolean;
+    state: PinState;
 
     isOn: boolean;
     isOff: boolean;
@@ -41,8 +41,7 @@ declare module "array-gpio" {
   type Frequency = 10 | 100 | 1000;
 
   type Callback = () => void;
-  export type StateCallback = (state: boolean) => void;
-  type StatePinCallback = (state: BitState, pin: number) => void;
+  export type StateCallback = (state: PinState) => void;
 
   type Resistor = 1 | "pu" | 0 | "pd";
 

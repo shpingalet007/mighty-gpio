@@ -1,8 +1,3 @@
-//type Resistor = -1 | 0 | 1;
-//type Edge = 0 | 1 | "both" | "unknown";
-//type PinMode = "out" | "in";
-//type GpioScheme = "physical" | "broadcom";
-
 import { GpioScheme, Mode } from "../src/types/enums";
 
 declare module "mighty-gpio" {
@@ -23,7 +18,7 @@ declare module "mighty-gpio" {
   export const ready: (...pins: Pin[]) => Promise<boolean>;
 
   interface Pin {
-    state: boolean;
+    state: PinState;
 
     isOn: boolean;
     isOff: boolean;
@@ -31,7 +26,7 @@ declare module "mighty-gpio" {
     pin: number;
 
     close(): void;
-    read(callback?: StateCallback): number[];
+    read(callback?: StateCallback): PinState;
   }
 
   interface InputPin extends Pin {
@@ -70,7 +65,7 @@ declare module "mighty-gpio" {
   type Frequency = 10 | 100 | 1000;
 
   type Callback = () => void;
-  type StateCallback = (state: boolean) => void;
+  type StateCallback = (state: PinState) => void;
   type StatePinCallback = (state: BitState, pin: number) => void;
 
   type Resistor = 1 | "pu" | 0 | "pd";

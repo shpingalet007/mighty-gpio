@@ -89,13 +89,13 @@ describe("Input methods", () => {
 
       expect(in20.constructor.name).to.equal("InputPin");
       expect(in20.pin).to.be.equal(20);
-      expect(in20.state).to.equal(false);
+      expect(in20.state).to.equal(0);
       expect(in20.isOff).to.equal(true);
       expect(in20.isOn).to.equal(false);
-      expect(in20.read()).to.equal(false);
+      expect(in20.read()).to.equal(0);
 
       in20.read((state) => {
-        expect(state).to.equal(false);
+        expect(state).to.equal(0);
       });
 
       in20.close();
@@ -109,42 +109,42 @@ describe("Input methods", () => {
       expect(ins1[1].constructor.name).to.equal("InputPin");
       expect(ins1[0].pin).to.be.equal(20);
       expect(ins1[1].pin).to.be.equal(21);
-      expect(ins1[0].state).to.equal(false);
-      expect(ins1[1].state).to.equal(false);
+      expect(ins1[0].state).to.equal(0);
+      expect(ins1[1].state).to.equal(0);
       expect(ins1[0].isOff).to.equal(true);
       expect(ins1[1].isOff).to.equal(true);
       expect(ins1[0].isOn).to.equal(false);
       expect(ins1[1].isOn).to.equal(false);
-      expect(ins1[0].read()).to.equal(false);
-      expect(ins1[1].read()).to.equal(false);
+      expect(ins1[0].read()).to.equal(0);
+      expect(ins1[1].read()).to.equal(0);
 
       ins1[0].read((state) => {
-        expect(state).to.equal(false);
+        expect(state).to.equal(0);
       });
 
       ins1[1].read((state) => {
-        expect(state).to.equal(false);
+        expect(state).to.equal(0);
       });
 
       expect(ins2[0].constructor.name).to.equal("InputPin");
       expect(ins2[1].constructor.name).to.equal("InputPin");
       expect(ins2[0].pin).to.be.equal(20);
       expect(ins2[1].pin).to.be.equal(21);
-      expect(ins2[0].state).to.equal(false);
-      expect(ins2[1].state).to.equal(false);
+      expect(ins2[0].state).to.equal(0);
+      expect(ins2[1].state).to.equal(0);
       expect(ins2[0].isOff).to.equal(true);
       expect(ins2[1].isOff).to.equal(true);
       expect(ins2[0].isOn).to.equal(false);
       expect(ins2[1].isOn).to.equal(false);
-      expect(ins2[0].read()).to.equal(false);
-      expect(ins2[1].read()).to.equal(false);
+      expect(ins2[0].read()).to.equal(0);
+      expect(ins2[1].read()).to.equal(0);
 
       ins2[0].read((state) => {
-        expect(state).to.equal(false);
+        expect(state).to.equal(0);
       });
 
       ins2[1].read((state) => {
-        expect(state).to.equal(false);
+        expect(state).to.equal(0);
       });
 
       ins1[0].close();
@@ -158,21 +158,21 @@ describe("Input methods", () => {
       expect(ins[21].constructor.name).to.equal("InputPin");
       expect(ins[20].pin).to.be.equal(20);
       expect(ins[21].pin).to.be.equal(21);
-      expect(ins[20].state).to.equal(false);
-      expect(ins[21].state).to.equal(false);
+      expect(ins[20].state).to.equal(0);
+      expect(ins[21].state).to.equal(0);
       expect(ins[20].isOff).to.equal(true);
       expect(ins[21].isOff).to.equal(true);
       expect(ins[20].isOn).to.equal(false);
       expect(ins[21].isOn).to.equal(false);
-      expect(ins[20].read()).to.equal(false);
-      expect(ins[21].read()).to.equal(false);
+      expect(ins[20].read()).to.equal(0);
+      expect(ins[21].read()).to.equal(0);
 
       ins[20].read((state) => {
-        expect(state).to.equal(false);
+        expect(state).to.equal(0);
       });
 
       ins[21].read((state) => {
-        expect(state).to.equal(false);
+        expect(state).to.equal(0);
       });
 
       ins[20].close();
@@ -183,9 +183,9 @@ describe("Input methods", () => {
     it("Watch pin directly", async () => {
       const in20 = MightyGpio.setInput(20);
 
-      function initWatchExpecting(expectation: boolean): Promise<void> {
+      function initWatchExpecting(expectation: 0 | 1): Promise<void> {
         return new Promise((resolve, reject) => {
-          in20.watch((state: boolean) => {
+          in20.watch((state) => {
             try {
               expect(in20.state).to.equal(expectation);
               expect(state).to.equal(expectation);
@@ -202,20 +202,20 @@ describe("Input methods", () => {
 
       function checkWatcher(): Promise<void> {
         return new Promise((resolve, reject) => {
-          const w1 = initWatchExpecting(true);
-          const w2 = initWatchExpecting(true);
+          const w1 = initWatchExpecting(1);
+          const w2 = initWatchExpecting(1);
 
           setPin(20, true, PinMode.In);
 
           // TODO: PROCEED
 
-          const rw1 = initWatchExpecting(false)
+          const rw1 = initWatchExpecting(0)
             .catch(() => "TIMEOUT")
             .then((res) => {
               if (res === "TIMEOUT") return Promise.resolve();
               return Promise.reject();
             });
-          const rw2 = initWatchExpecting(false)
+          const rw2 = initWatchExpecting(0)
             .catch(() => "TIMEOUT")
             .then((res) => {
               if (res === "TIMEOUT") return Promise.resolve();
@@ -246,7 +246,7 @@ describe("Input methods", () => {
     it("Watch all pins", async () => {
       const in20 = MightyGpio.setInput(20);
 
-      function initWatchExpecting(expectation: boolean): Promise<void> {
+      function initWatchExpecting(expectation: 0 | 1): Promise<void> {
         return new Promise((resolve, reject) => {
           MightyGpio.watchInput(() => {
             try {
@@ -264,19 +264,19 @@ describe("Input methods", () => {
 
       function checkWatcher(): Promise<void> {
         return new Promise((resolve, reject) => {
-          const w1 = initWatchExpecting(true);
-          const w2 = initWatchExpecting(true);
+          const w1 = initWatchExpecting(1);
+          const w2 = initWatchExpecting(1);
 
           setPin(20, true, PinMode.In);
 
-          const rw1 = initWatchExpecting(false)
+          const rw1 = initWatchExpecting(0)
             .catch(() => "TIMEOUT")
             .then((res) => {
               if (res === "TIMEOUT") return Promise.resolve();
               return Promise.reject();
             });
 
-          const rw2 = initWatchExpecting(false)
+          const rw2 = initWatchExpecting(0)
             .catch(() => "TIMEOUT")
             .then((res) => {
               if (res === "TIMEOUT") return Promise.resolve();
@@ -331,7 +331,7 @@ describe("Input methods", () => {
           in20.close();
           resolve();
         }, 300);
-      })
+      });
     });
   });
 });
@@ -343,13 +343,13 @@ describe("Output methods", () => {
 
       expect(in20.constructor.name).to.equal("OutputPin");
       expect(in20.pin).to.be.equal(20);
-      expect(in20.state).to.equal(false);
+      expect(in20.state).to.equal(0);
       expect(in20.isOff).to.equal(true);
       expect(in20.isOn).to.equal(false);
-      expect(in20.read()).to.equal(false);
+      expect(in20.read()).to.equal(0);
 
       in20.read((state) => {
-        expect(state).to.equal(false);
+        expect(state).to.equal(0);
       });
 
       in20.close();
@@ -362,21 +362,21 @@ describe("Output methods", () => {
       expect(ins[1].constructor.name).to.equal("OutputPin");
       expect(ins[0].pin).to.be.equal(20);
       expect(ins[1].pin).to.be.equal(21);
-      expect(ins[0].state).to.equal(false);
-      expect(ins[1].state).to.equal(false);
+      expect(ins[0].state).to.equal(0);
+      expect(ins[1].state).to.equal(0);
       expect(ins[0].isOff).to.equal(true);
       expect(ins[1].isOff).to.equal(true);
       expect(ins[0].isOn).to.equal(false);
       expect(ins[1].isOn).to.equal(false);
-      expect(ins[0].read()).to.equal(false);
-      expect(ins[1].read()).to.equal(false);
+      expect(ins[0].read()).to.equal(0);
+      expect(ins[1].read()).to.equal(0);
 
       ins[0].read((state) => {
-        expect(state).to.equal(false);
+        expect(state).to.equal(0);
       });
 
       ins[1].read((state) => {
-        expect(state).to.equal(false);
+        expect(state).to.equal(0);
       });
 
       ins[0].close();
@@ -390,21 +390,21 @@ describe("Output methods", () => {
       expect(ins[21].constructor.name).to.equal("OutputPin");
       expect(ins[20].pin).to.be.equal(20);
       expect(ins[21].pin).to.be.equal(21);
-      expect(ins[20].state).to.equal(false);
-      expect(ins[21].state).to.equal(false);
+      expect(ins[20].state).to.equal(0);
+      expect(ins[21].state).to.equal(0);
       expect(ins[20].isOff).to.equal(true);
       expect(ins[21].isOff).to.equal(true);
       expect(ins[20].isOn).to.equal(false);
       expect(ins[21].isOn).to.equal(false);
-      expect(ins[20].read()).to.equal(false);
-      expect(ins[21].read()).to.equal(false);
+      expect(ins[20].read()).to.equal(0);
+      expect(ins[21].read()).to.equal(0);
 
       ins[20].read((state) => {
-        expect(state).to.equal(false);
+        expect(state).to.equal(0);
       });
 
       ins[21].read((state) => {
-        expect(state).to.equal(false);
+        expect(state).to.equal(0);
       });
 
       ins[20].close();
@@ -419,26 +419,26 @@ describe("Output methods", () => {
       return new Promise<void>((resolve, reject) => {
         in20.write(true, (state) => {
           try {
-            expect(in20.state).to.equal(true);
-            expect(state).to.equal(true);
+            expect(in20.state).to.equal(1);
+            expect(state).to.equal(1);
             expect(in20.isOff).to.equal(false);
             expect(in20.isOn).to.equal(true);
-            expect(in20.read()).to.equal(true);
+            expect(in20.read()).to.equal(1);
 
             in20.read((state) => {
-              expect(state).to.equal(true);
+              expect(state).to.equal(1);
             });
 
             in20.write(false, (state) => {
               try {
-                expect(in20.state).to.equal(false);
-                expect(state).to.equal(false);
+                expect(in20.state).to.equal(0);
+                expect(state).to.equal(0);
                 expect(in20.isOff).to.equal(true);
                 expect(in20.isOn).to.equal(false);
-                expect(in20.read()).to.equal(false);
+                expect(in20.read()).to.equal(0);
 
                 in20.read((state) => {
-                  expect(state).to.equal(false);
+                  expect(state).to.equal(0);
                 });
 
                 in20.close();
@@ -460,26 +460,26 @@ describe("Output methods", () => {
       return new Promise((resolve, reject) => {
         in20.on((state) => {
           try {
-            expect(in20.state).to.equal(true);
-            expect(state).to.equal(true);
+            expect(in20.state).to.equal(1);
+            expect(state).to.equal(1);
             expect(in20.isOff).to.equal(false);
             expect(in20.isOn).to.equal(true);
-            expect(in20.read()).to.equal(true);
+            expect(in20.read()).to.equal(1);
 
             in20.read((state) => {
-              expect(state).to.equal(true);
+              expect(state).to.equal(1);
             });
 
             in20.off((state) => {
               try {
-                expect(in20.state).to.equal(false);
-                expect(state).to.equal(false);
+                expect(in20.state).to.equal(0);
+                expect(state).to.equal(0);
                 expect(in20.isOff).to.equal(true);
                 expect(in20.isOn).to.equal(false);
-                expect(in20.read()).to.equal(false);
+                expect(in20.read()).to.equal(0);
 
                 in20.read((state) => {
-                  expect(state).to.equal(false);
+                  expect(state).to.equal(0);
                 });
 
                 in20.close();
@@ -502,7 +502,7 @@ describe("Output methods", () => {
         return new Promise((resolve, reject) => {
           in20.pulse(10, () => {
             try {
-              expect(in20.state).to.equal(false);
+              expect(in20.state).to.equal(0);
               resolve();
             } catch (err) {
               reject(err);
@@ -513,9 +513,9 @@ describe("Output methods", () => {
 
       return Promise.all([
         pulse(),
-        delay(() => expect(in20.state).to.equal(true), 1),
-        delay(() => expect(in20.state).to.equal(true), 10),
-        delay(() => expect(in20.state).to.equal(false), 12),
+        delay(() => expect(in20.state).to.equal(1), 1),
+        delay(() => expect(in20.state).to.equal(1), 10),
+        delay(() => expect(in20.state).to.equal(0), 12),
       ]);
     });
 
@@ -528,7 +528,7 @@ describe("Output methods", () => {
       await new Promise<void>((resolve, reject) => {
         setTimeout(() => {
           try {
-            expect(out20.state).to.equal(true);
+            expect(out20.state).to.equal(1);
             resolve();
           } catch (err) {
             reject(err);
@@ -541,7 +541,7 @@ describe("Output methods", () => {
       await new Promise<void>((resolve, reject) => {
         setTimeout(() => {
           try {
-            expect(out20.state).to.equal(false);
+            expect(out20.state).to.equal(0);
             resolve();
           } catch (err) {
             reject(err);

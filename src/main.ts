@@ -4,6 +4,7 @@ import { BroadcomScheme } from "./helpers/gpio-scheme";
 import {
   Callback,
   ObserversPack,
+  PinState,
   ResistorType,
   StateCallback,
   StateEdgeCallback,
@@ -66,7 +67,7 @@ export default class MightyGpio {
 
       return await MightyGpio._events.invoke(
         `state-received[${pin}]`,
-        state,
+        +state,
         mode,
         resistor,
       );
@@ -250,7 +251,7 @@ class Pin {
   protected mode: PinMode | undefined;
   protected resistor: Resistor = Resistor.NoPull;
 
-  public state: boolean = false;
+  public state: PinState = 0;
 
   private id = Math.floor(Math.random() * 10 ** 5).toString(26);
 
@@ -265,11 +266,11 @@ class Pin {
   protected isHardware: boolean = false;
 
   get isOff(): boolean {
-    return !this.state;
+    return this.state === 0;
   }
 
   get isOn(): boolean {
-    return this.state;
+    return this.state === 1;
   }
 
   public pin: number;
@@ -281,7 +282,7 @@ class Pin {
     this.listenInform();
 
     this.pin = pin;
-    this.state = false;
+    this.state = 0;
   }
 
   public ready() {
@@ -296,7 +297,7 @@ class Pin {
     this.mode = undefined;
     this.resistor = Resistor.NoPull;
 
-    this.setObserverState(false);
+    this.setObserverState(0);
 
     if (this.gpio) {
       this.gpio?.close();
@@ -309,9 +310,8 @@ class Pin {
     })();
   }
 
-  public read(callback?: StateCallback): boolean {
+  public read(callback?: StateCallback): PinState {
     callback?.(this.state);
-
     return this.state;
   }
 
@@ -335,10 +335,6 @@ class Pin {
     MightyGpio._gpioEvents.off("inform-state", this._informListener);
   }
 
-  protected invokeStateReceived(state: boolean) {
-    return MightyGpio._events.invoke(`state-received[${this.pin}]`, state);
-  }
-
   protected handleStateConfirmed(handler: StateEdgeCallback): void {
     MightyGpio._events.handle(`state-confirmed[${this.pin}]`, handler);
   }
@@ -347,7 +343,7 @@ class Pin {
     MightyGpio._events.unhandle(`state-confirmed[${this.pin}]`);
   }
 
-  protected invokeStateConfirmed(edge: Edge, state: boolean) {
+  protected invokeStateConfirmed(edge: Edge, state: PinState) {
     return MightyGpio._events
       .invoke(`state-confirmed[${this.pin}]`, edge, state)
       .catch((err) => {
@@ -355,11 +351,11 @@ class Pin {
       });
   }
 
-  protected setObserverState(state: boolean, resistor?: keyof typeof Resistor) {
+  protected setObserverState(state: PinState, resistor?: keyof typeof Resistor) {
     MightyGpio._events.emit(
       "state-assigned",
       this.pin,
-      state,
+      !!state,
       <PinMode>this.mode,
       resistor,
     );
@@ -401,7 +397,7 @@ class InputPin extends Pin {
       MightyGpio._events.emit("state-watch", this.pin, edge, state);
       MightyGpio._events.emit(`state-watch[${this.pin}]`, edge, state);
 
-      return true;
+      return !!state;
     });
 
     this.handleStateReceived(async (state, mode, resistor) => {
@@ -426,8 +422,8 @@ class InputPin extends Pin {
 
       this.state = state;
 
-      const isLowToHigh = this.state && !prevState;
-      const isHighToLow = !this.state && prevState;
+      const isLowToHigh = !!this.state && !prevState;
+      const isHighToLow = !this.state && !!prevState;
 
       let targetEdge: Edge = Edge.Low;
 
@@ -461,7 +457,7 @@ class InputPin extends Pin {
 
     MightyGpio._events.on(
       `state-watch[${this.pin}]`,
-      (edge: Edge, state: boolean) => {
+      (edge: Edge, state: PinState) => {
         const dateNow = Date.now();
         const isRateReached = lastReported + scanRate <= dateNow;
         const isTargetEdge =
@@ -551,15 +547,8 @@ class InputPin extends Pin {
 
     this.gpio = hwPin;
 
-    // Reading current hardware state as default
-    const currentState = !!hwPin?.state;
-
-    if (hwPin) {
-      this.state = !currentState;
-      this.isHardware = true;
-    } else {
-      this.state = currentState;
-    }
+    this.state = +!!this.gpio?.state as PinState;
+    this.isHardware = !!this.gpio;
 
     const MinScanRate = 1;
 
@@ -567,17 +556,17 @@ class InputPin extends Pin {
 
     hwPin?.watch(
       Edge.Both,
-      (state: boolean) => {
+      (state: PinState) => {
         if (MightyGpio._inverted) {
-          state = !state;
+          state = +!state as PinState;
         }
 
         this.state = state;
 
         if (state === prevState) return;
 
-        const isLowToHigh = state === true && prevState === false;
-        const isHighToLow = state === false && prevState === true;
+        const isLowToHigh = state === 1 && prevState === 0;
+        const isHighToLow = state === 0 && prevState === 1;
 
         if (isLowToHigh) {
           this.invokeStateConfirmed(Edge.High, state);
@@ -645,27 +634,27 @@ class OutputPin extends Pin {
   }
 
   public on(...args: [(number | StateCallback)?, StateCallback?]) {
-    this.setStateWithDelay(true, ...args);
+    this.setStateWithDelay(1, ...args);
   }
 
   public off(...args: [(number | StateCallback)?, StateCallback?]) {
-    this.setStateWithDelay(false, ...args);
+    this.setStateWithDelay(0, ...args);
   }
 
   public write(bit: BitState, callback?: StateCallback) {
-    this.setStateWithDelay(!!bit, callback);
+    this.setStateWithDelay(+!!bit as PinState, callback);
   }
 
   public pulse(pw: number, callback?: Callback) {
-    this.setStateWithDelay(true, () => {
+    this.setStateWithDelay(1, () => {
       setTimeout(() => {
-        this.setStateWithDelay(false, callback);
+        this.setStateWithDelay(0, callback);
       }, pw);
     });
   }
 
   private setStateWithDelay(
-    state: boolean,
+    state: PinState,
     ...args: [(number | StateCallback)?, StateCallback?]
   ) {
     const { t: delay, callback } = this.parseOnOffArgs(...args);
@@ -677,8 +666,8 @@ class OutputPin extends Pin {
       if (!hwPin) callback?.(state);
       else hwPin?.write(state, (state) => callback?.(state));
 
-      const isLowToHigh = state === true && prevState === false;
-      const isHighToLow = state === false && prevState === true;
+      const isLowToHigh = state === 1 && prevState === 0;
+      const isHighToLow = state === 0 && prevState === 1;
 
       if (isLowToHigh || isHighToLow) {
         this.setObserverState(
@@ -738,8 +727,8 @@ class OutputPin extends Pin {
 
     this.gpio = hwPin;
 
-    // Reading current hardware state as default
-    this.state = !!hwPin?.state;
+    this.state = +!!this.gpio?.state as PinState;
+    this.isHardware = !!this.gpio;
 
     return hwPin;
   }

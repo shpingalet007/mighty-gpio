@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../../emulator/styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            margin: 0 auto;
+            padding: 4em 0;
+            width: 60%;
+        }
+
+        hr {
+            height: 1px;
+            background-color: darkgray;
+            border: none;
+            margin: 2em auto;
+        }
+
+        p {
+            line-height: 2;
+        }
+
+        p, .devices {
+            color: lightgray;
+            margin: 1em auto;
+        }
+    </style>
+
+    <title>Unit 1</title>
+</head>
+<body>
+    <h1>Unit 1</h1>
+
+    <p>
+        Run <br/><code><b>npx mighty-demo</b></code><br/> to start interactive documentation
+    </p>
+
+    <hr/>
+
+    <h2>Separate devices</h2>
+    <p>
+        This setup demonstrates using separate GPIO pins for input and output.
+    </p>
+
+    <p>
+        <i>One device mapped to both input and output pins.</i>
+    </p>
+
+    <div class="devices">
+        <div class="pin" in="22" t="1000" disabled>
+            <label>Button (pin 22)</label>
+            <button></button>
+        </div>
+        <div class="pin" out="24" disabled>
+            <label>LED (pin 24)</label>
+            <button></button>
+        </div>
+    </div>
+
+    <hr/>
+
+    <h2>Shared pin devices</h2>
+    <p>
+        Multiple virtual devices are connected to the same GPIO pin.
+        They behave just like physically wired devices sharing a connection.
+        Buttons can be made "sticky" to simulate the button press time.
+    </p>
+
+    <p>
+        <i>Multiple devices on a single pin.</i>
+    </p>
+
+    <div class="devices">
+        <div class="pin" in="22" t="600" disabled>
+            <label>Button #1 (pin 22)</label>
+            <button></button>
+        </div>
+        <div class="pin" in="22" t="400" disabled>
+            <label>Button #2 (pin 22)</label>
+            <button></button>
+        </div>
+        <div class="pin" in="22" t="200" disabled>
+            <label>Button #3 (pin 22)</label>
+            <button></button>
+        </div>
+    </div>
+
+    <div class="devices">
+        <div class="pin" out="24" disabled>
+            <label>LED #1 (pin 24)</label>
+            <button></button>
+        </div>
+        <div class="pin" out="24" disabled>
+            <label>LED #2 (pin 24)</label>
+            <button></button>
+        </div>
+        <div class="pin" out="24" disabled>
+            <label>LED #3 (pin 24)</label>
+            <button></button>
+        </div>
+    </div>
+
+    <hr/>
+
+    <h2>Composite Interface</h2>
+
+    <p>
+        This unit simulates both input and output behavior.
+        It sends input to one pin (e.g., simulating a button press),
+        and visually reacts to output from another pin (e.g., simulating an LED).
+        Both directions are handled by the same HTML element.
+    </p>
+
+    <p>
+        <i>One device per one input and one output pin</i>
+    </p>
+
+    <div class="devices">
+        <div class="pin" in="22" out="24" t="1000" disabled>
+            <label>Joint 1 (pin 22 as input, pin 24 as output)</label>
+            <button></button>
+        </div>
+    </div>
+</body>
+
+<script src="../../emulator/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
+<script src="../../emulator/script.js"></script>
+</html>

@@ -5,10 +5,20 @@ class MachineEmulator extends EventTarget {
     }
 
     getAllOutputs = () => [...document.querySelectorAll("[out]")]
-    getOutputs = (pin) => [...document.querySelectorAll(`[out="${pin}"]`)]
+    getOutputs = (pin) => [
+        ...document.querySelectorAll(`[out="${pin}"]`),
+        ...document.querySelectorAll(`[out^="${pin}|"]`),
+        ...document.querySelectorAll(`[out*="|${pin}|"]`),
+        ...document.querySelectorAll(`[out$="|${pin}"]`),
+    ]
 
     getAllInputs = () => [...document.querySelectorAll("[in]")]
-    getInputs = (pin, res) => [...document.querySelectorAll(`[in="${pin}"],[in="${res}:${pin}"]`)]
+    getInputs = (pin, res) => [
+        ...document.querySelectorAll(`[in="${pin}"],[in="${res}:${pin}"]`),
+        ...document.querySelectorAll(`[in^="${pin}|"],[in="${res}:${pin}|"]`),
+        ...document.querySelectorAll(`[in*="|${pin}|"],[in="|${res}:${pin}|"]`),
+        ...document.querySelectorAll(`[in$="|${pin}"],[in="|${res}:${pin}"]`),
+    ]
 
     getAllPins = () => [...this.getAllInputs(), ...this.getAllOutputs()];
     getPins = (pin) => [...this.getInputs(pin), ...this.getOutputs(pin)];
@@ -18,13 +28,13 @@ class MachineEmulator extends EventTarget {
 
         inputs.forEach((input) => {
             input.addEventListener("mousedown", () => {
-                //const isBlocked = input.blocked;
+                const isBlocked = input.blocked;
                 const isDisabled = input.hasAttribute("disabled");
                 const isInput = input.hasAttribute("in");
 
-                if (isDisabled || !isInput) return;
+                if (isDisabled || isBlocked || !isInput) return;
 
-                //input.blocked = true;
+                input.blocked = true;
 
                 this.setInState(input, 1);
 
@@ -34,41 +44,48 @@ class MachineEmulator extends EventTarget {
 
                 console.log(`InputPin ${pinParams} state HIGH`)
 
-                const inState = new CustomEvent("in-state", {
-                    detail: {
-                        state: 1,
-                        pin: MachineEmulator.getPinNumber(pinParams),
-                        mode: "in",
-                        resistor: MachineEmulator.getResistor(pinParams),
-                    },
-                })
+                const pinSelections = MachineEmulator.getPinParams(pinParams);
 
-                this.dispatchEvent(inState)
+                pinSelections.forEach((pinParams) => {
+                    const inState = new CustomEvent("in-state", {
+                        detail: {
+                            state: 1,
+                            pin: pinParams.pin,
+                            mode: "in",
+                            resistor: pinParams.resistor,
+                        },
+                    })
+
+                    this.dispatchEvent(inState)
+                });
             })
 
             input.addEventListener("mouseup", () => {
                 const sendEvent = () => {
-                    //const isBlocked = input.blocked;
-                    const isDisabled = input.hasAttribute("disabled");
+                    const isBlocked = input.blocked;
 
-                    if (isDisabled) return;
-
-                    //input.blocked = true;
+                    if (!isBlocked) return;
 
                     const pinParams = input.getAttribute("in");
 
                     this.setInState(input, 0);
 
-                    const inState = new CustomEvent("in-state", {
-                        detail: {
-                            state: 0,
-                            pin: MachineEmulator.getPinNumber(pinParams),
-                            mode: "in",
-                            resistor: MachineEmulator.getResistor(pinParams),
-                        },
-                    })
+                    const pinSelections = MachineEmulator.getPinParams(pinParams);
 
-                    this.dispatchEvent(inState)
+                    pinSelections.forEach((pinParams) => {
+                        const inState = new CustomEvent("in-state", {
+                            detail: {
+                                state: 0,
+                                pin: pinParams.pin,
+                                mode: "in",
+                                resistor: pinParams.resistor,
+                            },
+                        });
+
+                        this.dispatchEvent(inState);
+                    });
+
+                    input.blocked = false;
                 }
 
                 const timePassed = Date.now() - input.clicktime;
@@ -209,6 +226,10 @@ class MachineEmulator extends EventTarget {
         this.getPins(pin).forEach((elem) => this.disable(elem));
     }
 
+    setEnabled(pin) {
+        this.getPins(pin).forEach((elem) => this.enable(elem));
+    }
+
     disableAll() {
         this.getAllPins().forEach((elem) => this.disable(elem));
     }
@@ -231,9 +252,17 @@ class MachineEmulator extends EventTarget {
         }
     }
 
-    static getPinNumber(params) {
-        const pinParams = params.split(":").reverse();
-        return pinParams[0];
+    static getPinParams(params) {
+        const selections = params.split("|");
+
+        return selections.map((selection) => {
+            const pinParams = selection.split(":").reverse();
+
+            return {
+                pin: pinParams[0],
+                resistor: pinParams[1],
+            };
+        });
     }
 }
 
@@ -241,14 +270,21 @@ const emu = new MachineEmulator()
 
 //const socket = new WebSocket("ws://192.168.7.237:8080/gpio");
 //const socket = io("http://192.168.7.107:4000");
-const socket = io("http://127.0.0.1:4000");
+const socket = io("http://127.0.0.1:46992");
 //const socket = io("http://192.168.7.116:4000");
+
+let conChecker;
 
 socket.on('disconnect', () => {
     emu.disableAll();
+    clearInterval(conChecker);
 });
 
 socket.on('connect', () => {
+    conChecker = setInterval(() => {
+        socket.emit("ping");
+    }, 1000);
+
     emu.onInState((pin, state, mode, resistor) => {
         socket.emit("pin:toggle", pin, !!state, mode, resistor, () => {
             console.log('Hello world');

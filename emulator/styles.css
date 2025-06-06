@@ -1,6 +1,7 @@
 body {
     background: #393939;
     color: #fff;
+    font-family: Arial;
 }
 
 #container {
@@ -61,9 +62,8 @@ body {
     position: absolute;
     margin-left: 30px;
     padding-left: 10px;
-    width: 300px;
+    text-wrap: nowrap;
     line-height: 100%;
-    font-family: Arial;
 }
 
 /* .pin label::after {

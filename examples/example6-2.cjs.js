@@ -9,8 +9,8 @@ r.useBroadcomScheme();
 
 const sw = r.in({pin:[4, 22], index:'pin'});
 
-sw[4].setR(1);
-sw[22].setR(1);
+sw[4].setPud(1);
+sw[22].setPud(1);
 
 const led = r.out({pin:[13, 19, 26, 27, 12]});
 

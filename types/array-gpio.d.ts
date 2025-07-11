@@ -17,7 +17,10 @@ declare module "array-gpio" {
 
     unwatch(): void;
 
+    /** @deprecated */
     setR(value?: Resistor): void;
+
+    setPud(value?: Resistor): void;
   }
 
   interface OutputPin extends Pin {

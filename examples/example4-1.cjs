@@ -8,8 +8,8 @@ r.useBroadcomScheme();
 
 let sw1 = r.in(6), sw2 = r.in(21);
 
-sw1.setR(1);
-sw2.setR(1);
+sw1.setPud(1);
+sw2.setPud(1);
 
 let led1 = r.out(13), led2 = r.out(19);
 

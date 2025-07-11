@@ -491,7 +491,7 @@ class InputPin extends Pin {
     this.unwatch();
   }
 
-  public setR(value?: ResistorType) {
+  public setPud(value?: ResistorType) {
     if (value === undefined) {
       this.resistor = Resistor.NoPull;
     } else if (value === "pu" || value === 1) {
@@ -501,13 +501,13 @@ class InputPin extends Pin {
     }
 
     if (this.gpio) {
-      this.gpio?.setR(value);
+      this.gpio?.setPud(value);
       return;
     }
 
     (async () => {
       const hwPin = await this.gpioPromise;
-      hwPin?.setR(value);
+      hwPin?.setPud(value);
     })();
   }
 

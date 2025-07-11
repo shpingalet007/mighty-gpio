@@ -72,17 +72,17 @@ describe("Input methods", () => {
       // @ts-ignore
       expect(in20.resistor).to.equal(Resistor.NoPull);
 
-      in20.setR(Resistor.PullUp);
+      in20.setPud(Resistor.PullUp);
 
       // @ts-ignore
       expect(in20.resistor).to.equal(Resistor.PullUp);
 
-      in20.setR(Resistor.PullDown);
+      in20.setPud(Resistor.PullDown);
 
       // @ts-ignore
       expect(in20.resistor).to.equal(Resistor.PullDown);
 
-      in20.setR();
+      in20.setPud();
 
       // @ts-ignore
       expect(in20.resistor).to.equal(Resistor.NoPull);

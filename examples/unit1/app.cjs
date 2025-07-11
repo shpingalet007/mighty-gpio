@@ -7,7 +7,7 @@ r.useBroadcomScheme();
 r.setInverted();
 
 let sw = r.in(22);
-sw.setR(1);
+sw.setPud(1);
 
 let led = r.out(24);
 

@@ -41,6 +41,6 @@
     "typescript": "^5.5.3"
   },
   "optionalDependencies": {
-    "array-gpio": "file:array-gpio-1.7.3.tgz"
+    "array-gpio": "^1.7.4"
   }
 }

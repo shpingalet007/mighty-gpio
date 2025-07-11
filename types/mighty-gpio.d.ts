@@ -35,7 +35,10 @@ declare module "mighty-gpio" {
 
     unwatch(): void;
 
+    /** @deprecated */
     setR(value?: Resistor): void;
+
+    setPud(value?: Resistor): void;
 
     /* For internal use only */
     ready(): InputPin;

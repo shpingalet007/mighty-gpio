@@ -12,9 +12,9 @@ let sw1 = setInput(6);
 let sw2 = setInput(21);
 let sw3 = setInput(5);
 
-sw1.setR(1);
-sw2.setR(1);
-sw3.setR(1);
+sw1.setPud(1);
+sw2.setPud(1);
+sw3.setPud(1);
 
 let led = setOutput(24);
 

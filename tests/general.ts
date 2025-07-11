@@ -207,8 +207,6 @@ describe("Input methods", () => {
 
           setPin(20, true, PinMode.In);
 
-          // TODO: PROCEED
-
           const rw1 = initWatchExpecting(0)
             .catch(() => "TIMEOUT")
             .then((res) => {

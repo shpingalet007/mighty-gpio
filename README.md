@@ -1,12 +1,12 @@
 # mighty-gpio
 
-> Emulate GPIO hardware. Debug smarter. Build faster.
+> Emulate GPIO hardware on Raspberry Pi. Debug smarter. Build faster.
 
-`mighty-gpio` is an emulation layer for [array-gpio](https://www.npmjs.com/package/array-gpio) that lets you develop and test GPIO-based Node.js applications without needing physical hardware like a Raspberry Pi.
+`mighty-gpio` is an emulation layer for [array-gpio](https://www.npmjs.com/package/array-gpio) that lets you develop and test GPIO-based Node.js applications without needing physical Raspberry Pi hardware.
 
 Working with GPIO usually means testing on real devices — which slows things down. Every change means redeploying, reconnecting, and manually verifying the results.
 
-This module helps by simulating the `array-gpio` API in software. You can run your app directly on your dev machine (macOS, Windows, or Linux), and it will behave as if it's connected to GPIO. If actual hardware is available, it uses it. If not, it automatically switches to simulation mode — no need to change your code.
+This module helps by wrapping the `array-gpio` API in software. You can run your app directly on your dev machine (macOS, Windows, or Linux), and it will behave as if it is Raspberry Pi with GPIO. If actual hardware is available, it uses it. If not, it automatically switches to simulation mode — no need to change your code.
 
 ## ✨ Features
 - **Same API as `array-gpio`** — keep your existing code.
@@ -24,7 +24,7 @@ Great for prototyping, debugging, or writing tests for IoT and hardware-related 
 
 # Documentation
 
-Consider checking `array-gpio` documentation. In this documentation would be covered extra methods, mechanics and
+Consider checking `array-gpio` documentation. In this documentation would be covered only extra methods, mechanics and
 differences between official documentation.
 
 ## Mechanics differences

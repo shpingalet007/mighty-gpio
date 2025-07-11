@@ -1,14 +1,21 @@
 {
-  "name": "mighty-gpio",
-  "private": true,
+  "name": "@pinlab/mighty-gpio",
   "version": "1.0.0",
-  "description": "",
+  "license": "LGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shpingalet007/mighty-gpio.git"
+  },
+  "description": "Raspberry Pi GPIO module with emulation support",
   "main": "dist/index.js",
   "types": "types/mighty-gpio.d.ts",
   "files": [
     "dist",
     "types"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build:dev": "ncc build src/main.ts -o dist --source-map",
     "build:prod": "ncc build src/main.ts -m -o dist",

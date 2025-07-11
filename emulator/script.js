@@ -235,8 +235,6 @@ class MachineEmulator extends EventTarget {
     }
 
     onInState(callback) {
-        // TODO: Incoming pin state is echoed back due to events issue. PROCEED
-
         this.addEventListener("in-state", (event) => {
             callback(event.detail.pin, event.detail.state, event.detail.mode, event.detail.resistor);
         });
@@ -268,10 +266,7 @@ class MachineEmulator extends EventTarget {
 
 const emu = new MachineEmulator()
 
-//const socket = new WebSocket("ws://192.168.7.237:8080/gpio");
-//const socket = io("http://192.168.7.107:4000");
 const socket = io("http://127.0.0.1:46992");
-//const socket = io("http://192.168.7.116:4000");
 
 let conChecker;
 

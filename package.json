@@ -1,12 +1,28 @@
 {
   "name": "@pinlab/mighty-gpio",
-  "version": "1.0.0",
+  "description": "Raspberry Pi GPIO module with emulation support",
+  "version": "1.0.1",
   "license": "LGPL-3.0-or-later",
   "repository": {
     "type": "git",
     "url": "https://github.com/shpingalet007/mighty-gpio.git"
   },
-  "description": "Raspberry Pi GPIO module with emulation support",
+  "keywords": [
+    "bcm2835",
+    "gpio",
+    "pi",
+    "raspberry pi",
+    "rpi",
+    "rpio",
+    "onoff",
+    "pwm",
+    "i2c",
+    "spi",
+    "m2m",
+    "iot",
+    "IoT",
+    "industry 4.0"
+  ],
   "main": "dist/index.js",
   "types": "types/mighty-gpio.d.ts",
   "files": [

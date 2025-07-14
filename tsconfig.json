@@ -16,6 +16,6 @@
   "include": [
     "node_modules/@types",
     "types",
-    "src",
+    "src"
   ]
 }

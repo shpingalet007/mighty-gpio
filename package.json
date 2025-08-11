@@ -45,7 +45,7 @@
     "coverage": "c8 npm run test"
   },
   "dependencies": {
-    "@types/node": "^22.14.1",
+    "@types/node": "^22.16.5",
     "mighty-gpio": "file:mighty-gpio-1.0.0.tgz",
     "ts-node": "^10.9.2"
   },

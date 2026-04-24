@@ -1,4 +1,4 @@
-import { ReverseMap } from "../types/types";
+import { ReverseMap } from "../../types/types.js";
 
 export const BroadcomScheme = {
   2: 3,

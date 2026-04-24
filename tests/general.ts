@@ -1,11 +1,11 @@
 import { expect } from "chai";
 
-import type * as MightyGpioDeclaration from "mighty-gpio";
+import type * as MightyGpioDeclaration from "../src/main.js";
 
-import _MightyGpio, { ObserverHandler } from "../src/main";
-import { GpioScheme, Mode, PinMode, Resistor } from "../src/types/enums";
+import _MightyGpio, { ObserverHandler } from "../src/main.js";
+import { GpioScheme, Mode, PinMode, Resistor } from "../types/enums.js";
 import { EventEmitter } from "events";
-import delay from "../src/helpers/delay";
+import delay from "../src/helpers/delay.js";
 
 const MightyGpio = (<unknown>_MightyGpio) as typeof MightyGpioDeclaration;
 

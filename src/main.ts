@@ -1,6 +1,6 @@
 import type ArrayGpio from "array-gpio";
-import { AckEventEmitter } from "./helpers/ackevents";
-import { BroadcomScheme } from "./helpers/gpio-scheme";
+import {AckEventEmitter} from "./helpers/ackevents.js";
+import {BroadcomScheme} from "./helpers/gpio-scheme.js";
 import {
   Callback,
   ObserversPack,
@@ -9,11 +9,11 @@ import {
   StateCallback,
   StateEdgeCallback,
   StateModeResistorCallback,
-} from "./types/types";
-import { Edge, GpioScheme, Mode, PinMode, Resistor } from "./types/enums";
-import { EventEmitter } from "events";
+} from "../types/types.js";
+import {Edge, GpioScheme, Mode, PinMode, Resistor} from "../types/enums.js";
+import {EventEmitter} from "events";
 
-export { ObserverHandler, ObserversPack } from "./types/types";
+export { ObserverHandler, ObserversPack } from "../types/types.js";
 
 type BitState = 1 | true | 0 | false;
 
@@ -23,6 +23,8 @@ export default class MightyGpio {
 
   static _events = new AckEventEmitter();
   static _gpioEvents = new EventEmitter();
+
+  static pins = new Map<number, Pin>();
 
   static _gpioScheme = GpioScheme.Physical;
 
@@ -242,16 +244,28 @@ export default class MightyGpio {
     if (!MightyGpio.arrayGpio) {
       MightyGpio.arrayGpio = import("array-gpio")
         .then((m) => m.default)
-        .catch((_) => null);
+        .catch((err) => {
+          console.error(err);
+          return null;
+        });
     }
+  }
+
+  public static readAllData() {
+    return Object.fromEntries(
+      Array
+        .from(MightyGpio.pins.entries())
+        .map(([idx, pin]) => [idx, pin.readData()])
+    );
   }
 }
 
 class Pin {
   protected mode: PinMode | undefined;
   protected resistor: Resistor = Resistor.NoPull;
+  protected inverted: boolean = false;
 
-  public state: PinState = 0;
+  public state: PinState;
 
   private id = Math.floor(Math.random() * 10 ** 5).toString(26);
 
@@ -266,11 +280,11 @@ class Pin {
   protected isHardware: boolean = false;
 
   get isOff(): boolean {
-    return this.state === 0;
+    return this.state === this.getPullDownState();
   }
 
   get isOn(): boolean {
-    return this.state === 1;
+    return this.state === this.getPullUpState();
   }
 
   public pin: number;
@@ -282,11 +296,19 @@ class Pin {
     this.listenInform();
 
     this.pin = pin;
-    this.state = 0;
+    this.state = this.getPullDownState();
   }
 
   public ready() {
     return this.gpioPromise.then(() => this);
+  }
+
+  public readData() {
+    return {
+      state: !!this.state,
+      resistor: Resistor[this.resistor],
+      mode: this.mode,
+    };
   }
 
   public close() {
@@ -314,6 +336,20 @@ class Pin {
     callback?.(this.state);
     return this.state;
   }
+
+  public setInverted() {
+    this.inverted = true;
+    this.triggerState();
+    this.setObserverState(this.state);
+  }
+
+  private triggerState(): PinState {
+    if (this.state === 1) return 0;
+    else return 1;
+  }
+
+  private getPullDownState = () => this.inverted ? 0 : 1;
+  private getPullUpState = () => this.inverted ? 1 : 0;
 
   protected handleStateReceived(handler: StateModeResistorCallback): void {
     MightyGpio._events.handle(`state-received[${this.pin}]`, handler);
@@ -408,6 +444,8 @@ class InputPin extends Pin {
       const isResistorCorrect = Resistor[resistor] !== this.resistor;
       const isResistorSpecified = !!resistor;
 
+      this.state = state;
+
       if (isResistorSpecified && isResistorCorrect) {
         // TODO: State must not be confirmed. It is placed here just to not break handlers
         this.invokeStateConfirmed(Edge.Unknown, this.state);
@@ -419,8 +457,6 @@ class InputPin extends Pin {
         this.invokeStateConfirmed(Edge.Unknown, this.state);
         return;
       }
-
-      this.state = state;
 
       const isLowToHigh = !!this.state && !prevState;
       const isHighToLow = !this.state && !!prevState;
@@ -442,6 +478,8 @@ class InputPin extends Pin {
        * set on hardware level.
        */
     });
+
+    MightyGpio.pins.set(pin, this);
   }
 
   public watch(
@@ -561,7 +599,11 @@ class InputPin extends Pin {
           state = +!state as PinState;
         }
 
-        this.state = state;
+        if (this.inverted) {
+          state = +!state as PinState;
+        }
+
+        this.state = +state as PinState;
 
         if (state === prevState) return;
 
@@ -631,6 +673,8 @@ class OutputPin extends Pin {
       const gpio = await this.gpioPromise;
       gpio?.write(state);
     });
+
+    MightyGpio.pins.set(pin, this);
   }
 
   public on(...args: [(number | StateCallback)?, StateCallback?]) {
@@ -750,6 +794,7 @@ export const forceEmulation = MightyGpio.forceEmulation;
 export const useBroadcomScheme = MightyGpio.useBroadcomScheme;
 export const setObservers = MightyGpio.setObservers;
 export const ready = MightyGpio.ready;
+export const readAllData = MightyGpio.readAllData;
 
 export const startPWM = MightyGpio.startPWM;
 export const startSPI = MightyGpio.startSPI;

@@ -1,4 +1,4 @@
-import { Edge, PinMode, Resistor } from "./enums";
+import { Edge, PinMode, Resistor } from "./enums.js";
 import { PinState } from "array-gpio";
 export { PinState } from "array-gpio";
 
@@ -30,3 +30,9 @@ export type ResistorType = Resistor.PullUp | Resistor.PullDown | "pu" | "pd";
 export type ReverseMap<T extends Record<keyof T, keyof any>> = {
   [K in keyof T as T[K]]: K;
 };
+
+export interface PinData {
+  state: boolean;
+  resistor: typeof Resistor;
+  mode: PinMode;
+}

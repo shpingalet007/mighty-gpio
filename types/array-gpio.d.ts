@@ -57,12 +57,10 @@ declare module "array-gpio" {
   function setInput(pin: number): InputPin;
   function setInput(...pin: number[]): InputPin[];
   function setInput(option: Option): InputPin[];
-  "in" = setInput;
 
   function setOutput(pin: number): OutputPin;
   function setOutput(...pin: number[]): OutputPin[];
   function setOutput(option: Option): OutputPin[];
-  out = setOutput;
 
   function watchInput(callback: Callback): void;
   function watchInput(callback: Callback, s?: number): void;

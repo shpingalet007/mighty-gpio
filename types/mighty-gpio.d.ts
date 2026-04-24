@@ -1,14 +1,15 @@
-import { GpioScheme, Mode } from "../src/types/enums";
+import { GpioScheme, Mode } from "./enums";
+import {ObserversPack, PinData, PinMode, PinState } from "./types";
 
-declare module "mighty-gpio" {
+declare module "@pinlab/mighty-gpio" {
   /* For internal use only */
   export let _mode: Mode;
   export let _inverted: boolean;
   export let _gpioScheme: GpioScheme;
 
   /* Mighty GPIO methods */
-  export const setInverted: () => boolean;
-  export const useBroadcomScheme: () => boolean;
+  export const setInverted: () => void;
+  export const useBroadcomScheme: () => void;
   export const forceEmulation: () => boolean;
   export const isBroadcomScheme: () => boolean;
   export const supportsPeripherals: () => boolean;
@@ -16,6 +17,7 @@ declare module "mighty-gpio" {
   export const supportsI2C: () => boolean;
   export const supportsSPI: () => boolean;
   export const ready: (...pins: Pin[]) => Promise<boolean>;
+  export const readAllData: () => PinData[];
 
   interface Pin {
     state: PinState;
@@ -27,9 +29,11 @@ declare module "mighty-gpio" {
 
     close(): void;
     read(callback?: StateCallback): PinState;
+
+    readData(): PinData;
   }
 
-  interface InputPin extends Pin {
+  export interface InputPin extends Pin {
     watch(edge: Edge, callback: StateCallback, s?: number): void;
     watch(callback: StateCallback, s?: number): void;
 
@@ -40,11 +44,13 @@ declare module "mighty-gpio" {
 
     setPud(value?: Resistor): void;
 
+    setInverted(): void;
+
     /* For internal use only */
     ready(): InputPin;
   }
 
-  interface OutputPin extends Pin {
+  export interface OutputPin extends Pin {
     on(t?: number, callback?: StateCallback): void;
     on(callback?: StateCallback): void;
 
@@ -79,18 +85,20 @@ declare module "mighty-gpio" {
   type ChipSelect = 0 | 1 | 2 | 3;
   type PinState = 0 | 1;
 
-  export function setInverted(): void;
   export function setObservers(observers: ObserversPack): void;
-  export function useBroadcomScheme(): void;
 
   export function setInput(pin: number): InputPin;
   export function setInput(...pin: number[]): InputPin[];
   export function setInput(option: Option): InputPin[];
+
+  // @ts-ignore
   export { setInput as in };
 
   export function setOutput(pin: number): OutputPin;
   export function setOutput(...pin: number[]): OutputPin[];
   export function setOutput(option: Option): OutputPin[];
+
+  // @ts-ignore
   export { setOutput as out };
 
   export function watchInput(callback: Callback): void;
